@@ -1,78 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Couple OS</title>
-
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Couple OS V2</title>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <style>
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:linear-gradient(135deg,#ff4d6d,#ffb3c1);color:#fff;height:100vh;display:flex;flex-direction:column}
-header{text-align:center;padding:14px;font-size:20px;font-weight:600}
-main{flex:1;overflow-y:auto;padding:15px;padding-bottom:90px}
-.card{background:rgba(255,255,255,.15);backdrop-filter:blur(18px);border-radius:18px;padding:15px;margin-bottom:15px}
-input,textarea,select{width:100%;padding:12px;border:none;border-radius:12px;margin-top:8px;box-sizing:border-box}
-button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:12px;font-weight:600}
+body{margin:0;font-family:sans-serif;background:linear-gradient(135deg,#ff4d6d,#ffb3c1);color:white}
+main{padding:15px;padding-bottom:90px}
+.card{background:rgba(255,255,255,.15);padding:15px;border-radius:16px;margin-bottom:12px}
 .tab{display:none}.active{display:block}
-.tabbar{position:fixed;bottom:0;left:0;right:0;height:70px;background:rgba(255,255,255,.2);backdrop-filter:blur(20px);display:flex;justify-content:space-around;align-items:center}
-.tabbar button{background:none;color:white;width:auto;margin:0}
-#map{height:400px;border-radius:18px}
-canvas{width:100%;max-width:320px;display:block;margin:auto}
+.tabbar{position:fixed;bottom:0;left:0;right:0;height:70px;display:flex;justify-content:space-around;align-items:center;background:rgba(255,255,255,.2)}
+button,input,textarea,select{border:none;border-radius:12px;padding:10px;margin-top:8px;width:100%;box-sizing:border-box}
+.tabbar button{width:auto;background:none;color:white}
+#map{height:350px;border-radius:12px}
 </style>
 </head>
 <body>
-<header>❤️ Couple OS</header>
-
 <main>
 <div id="home" class="tab active">
 <div class="card">
-<h2>❤️ D + T Dashboard</h2>
-<p id="daysTogether"></p>
-<p id="latestMood">😊 Latest mood: --</p>
-<p id="latestNote">💌 Last note: --</p>
-<p id="streak">🔥 Check-ins: 0</p>
+<h2>❤️ Couple OS V2</h2>
+<p id="days"></p>
+<p id="thought">Nobody has tapped Thinking Of You yet ❤️</p>
+<button onclick="thinking()">❤️ Thinking Of You</button>
 </div>
 </div>
 
-<div id="wheelTab" class="tab">
+<div id="notesTab" class="tab">
 <div class="card">
-<h3>🎡 Date Wheel</h3>
-<canvas id="wheel" width="400" height="400"></canvas>
-<button onclick="spin()">Spin</button>
-<p id="result"></p>
+<input id="note" placeholder="Love note">
+<button onclick="addNote()">Send Note</button>
+<div id="notes"></div>
 </div>
 </div>
 
 <div id="checkTab" class="tab">
 <div class="card">
-<h3>🧾 Check-In</h3>
-<select id="mood">
-<option>😊 Happy</option><option>😐 Neutral</option>
-<option>😔 Off</option><option>❤️ Connected</option>
-</select>
-<input id="rating" type="number" placeholder="Rating 1-10">
+<select id="mood"><option>😊 Happy</option><option>❤️ Connected</option><option>😐 Neutral</option></select>
 <textarea id="best" placeholder="Best moment"></textarea>
-<button onclick="saveCheck()">Send Check-In</button>
+<button onclick="saveCheck()">Check In</button>
+<div id="checks"></div>
 </div>
-<div class="card"><div id="checks"></div></div>
 </div>
 
-<div id="notesTab" class="tab">
+<div id="wheelTab" class="tab">
 <div class="card">
-<h3>💌 Live Notes</h3>
-<input id="noteInput" placeholder="Write something...">
-<button onclick="addNote()">Send</button>
-<div id="notes"></div>
+<button onclick="spin()">🎡 Spin Date Wheel</button>
+<p id="result"></p>
 </div>
 </div>
 
 <div id="mapTab" class="tab">
 <div class="card">
-<h3>🗺️ Jacksonville Date Map</h3>
-<p>Add Firebase map code later. Map centered on Jacksonville.</p>
+<input id="placeName" placeholder="Place">
+<input id="placeMemory" placeholder="Memory">
+<button onclick="addPlace()">Add Place</button>
 </div>
 <div class="card"><div id="map"></div></div>
 </div>
@@ -80,83 +65,42 @@ canvas{width:100%;max-width:320px;display:block;margin:auto}
 
 <div class="tabbar">
 <button onclick="openTab('home')">🏠</button>
-<button onclick="openTab('wheelTab')">🎡</button>
-<button onclick="openTab('checkTab')">🧾</button>
 <button onclick="openTab('notesTab')">💌</button>
+<button onclick="openTab('checkTab')">🧾</button>
+<button onclick="openTab('wheelTab')">🎡</button>
 <button onclick="openTab('mapTab')">🗺️</button>
 </div>
 
 <script>
-const relationshipStart = new Date("2026-5-23");
+const start=new Date('2026-05-23');
+days.innerText='❤️ Together for '+Math.floor((Date.now()-start)/(1000*60*60*24))+' days';
 
-function openTab(id){
-document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-document.getElementById(id).classList.add('active');
-if(id==="mapTab" && window.map){setTimeout(()=>map.invalidateSize(),200);}
-}
+function openTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='mapTab')setTimeout(()=>map.invalidateSize(),100);}
 
-const days=Math.floor((new Date()-relationshipStart)/(1000*60*60*24));
-document.getElementById("daysTogether").innerText=`❤️ Together for ${days} days`;
+function thinking(){localStorage.setItem('thought',new Date().toLocaleString());thought.innerText='❤️ Thinking of you tapped at '+localStorage.getItem('thought');}
+if(localStorage.getItem('thought')) thought.innerText='❤️ Thinking of you tapped at '+localStorage.getItem('thought');
 
-// local demo storage
-function renderNotes(){
-const notes=JSON.parse(localStorage.getItem("notes")||"[]");
-document.getElementById("notes").innerHTML=notes.map(n=>`<div class="card">❤️ ${n}</div>`).join("");
-if(notes[0]) document.getElementById("latestNote").innerText=`💌 Last note: ${notes[0]}`;
-}
-function addNote(){
-const v=document.getElementById("noteInput").value.trim();
-if(!v)return;
-const notes=JSON.parse(localStorage.getItem("notes")||"[]");
-notes.unshift(v);
-localStorage.setItem("notes",JSON.stringify(notes));
-document.getElementById("noteInput").value="";
+function addNote(){let n=note.value.trim(); if(!n)return; let arr=JSON.parse(localStorage.getItem('notes')||'[]'); arr.unshift(n); localStorage.setItem('notes',JSON.stringify(arr)); renderNotes(); note.value='';}
+function renderNotes(){let arr=JSON.parse(localStorage.getItem('notes')||'[]'); notes.innerHTML=arr.map(x=>'<div class="card">❤️ '+x+'</div>').join('');}
 renderNotes();
-}
 
-function renderChecks(){
-const checks=JSON.parse(localStorage.getItem("checks")||"[]");
-document.getElementById("checks").innerHTML=checks.map(c=>`<div class="card">${c.mood} | ${c.rating}/10<br>${c.best}</div>`).join("");
-document.getElementById("streak").innerText=`🔥 Check-ins: ${checks.length}`;
-if(checks[0]) document.getElementById("latestMood").innerText=`😊 Latest mood: ${checks[0].mood}`;
-}
-function saveCheck(){
-const checks=JSON.parse(localStorage.getItem("checks")||"[]");
-checks.unshift({
-mood:mood.value,rating:rating.value,best:best.value
-});
-localStorage.setItem("checks",JSON.stringify(checks));
+function saveCheck(){let arr=JSON.parse(localStorage.getItem('checks')||'[]'); arr.unshift({m:mood.value,b:best.value}); localStorage.setItem('checks',JSON.stringify(arr)); renderChecks(); best.value='';}
+function renderChecks(){let arr=JSON.parse(localStorage.getItem('checks')||'[]'); checks.innerHTML=arr.map(x=>'<div class="card">'+x.m+'<br>'+x.b+'</div>').join('');}
 renderChecks();
-}
+
+const ideas=['🍕 Pizza Night','🌅 Beach Sunset','🎬 Movie Night','☕ Coffee Walk'];
+function spin(){let pick=ideas[Math.floor(Math.random()*ideas.length)]; result.innerText='Tonight: '+pick; confetti();}
 
 const map=L.map('map').setView([30.3322,-81.6557],11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
-
-let options=["🍕 Pizza Night","🌅 Beach Sunset","🍽️ Dinner Date","☕ Coffee Walk","🎬 Movie Night","🎳 Bowling"];
-let rotation=0;
-const canvas=document.getElementById("wheel"),ctx=canvas.getContext("2d");
-function draw(){
-const arc=2*Math.PI/options.length;
-for(let i=0;i<options.length;i++){
-ctx.beginPath();ctx.moveTo(200,200);
-ctx.arc(200,200,200,i*arc,(i+1)*arc);
-ctx.fillStyle=i%2?"#ff6b6b":"#ffd166";ctx.fill();
-}}
-draw();
-function spin(){
-const arc=360/options.length;
-rotation+=2500+Math.random()*600;
-canvas.style.transform=`rotate(${rotation}deg)`;
-setTimeout(()=>{
-let norm=(360-(rotation%360))%360;
-let index=Math.floor(norm/arc);
-result.innerText="Tonight: "+options[index];
-confetti({particleCount:200,spread:120,origin:{y:.6}});
-},2200);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let places=JSON.parse(localStorage.getItem('places')||'[]');
+function drawPlaces(){places.forEach(p=>L.marker([p.lat,p.lon]).addTo(map).bindPopup('<b>'+p.name+'</b><br>'+p.memory));}
+drawPlaces();
+function addPlace(){
+let name=placeName.value.trim(); if(!name)return;
+let p={name,memory:placeMemory.value,lat:30.3322+(Math.random()-.5)*.2,lon:-81.6557+(Math.random()-.5)*.2};
+places.push(p); localStorage.setItem('places',JSON.stringify(places)); location.reload();
 }
-
-renderNotes();
-renderChecks();
 </script>
 </body>
 </html>
