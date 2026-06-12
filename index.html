@@ -51,27 +51,10 @@ button,input,textarea,select{border:none;border-radius:12px;padding:10px;margin-
   <option>🤩 Excited</option>
 </select>
 <textarea id="best" placeholder="Best moment"></textarea>
-<button onclick="saveCheck(
-  function saveCheck(){
+<button onclick="saveCheck()
+Check In
+  </button>
 
-if(mood.value === "😢 Sad"){
-alert("❤️ Remember you're loved.");
-}
-
-let arr=JSON.parse(localStorage.getItem('checks')||'[]');
-
-arr.unshift({
-m:mood.value,
-b:best.value
-});
-
-localStorage.setItem('checks',JSON.stringify(arr));
-
-renderChecks();
-
-best.value='';
-}
-)">Check In</button>
 <div id="checks"></div>
 </div>
 </div>
@@ -130,6 +113,31 @@ function addPlace(){
 let name=placeName.value.trim(); if(!name)return;
 let p={name,memory:placeMemory.value,lat:30.3322+(Math.random()-.5)*.2,lon:-81.6557+(Math.random()-.5)*.2};
 places.push(p); localStorage.setItem('places',JSON.stringify(places)); location.reload();
+}
+function saveCheck(){
+
+if(document.getElementById("mood").value === "😢 Sad"){
+alert("❤️ Remember you're loved.");
+}
+
+let arr =
+JSON.parse(
+localStorage.getItem("checks") || "[]"
+);
+
+arr.unshift({
+m: document.getElementById("mood").value,
+b: document.getElementById("best").value
+});
+
+localStorage.setItem(
+"checks",
+JSON.stringify(arr)
+);
+
+renderChecks();
+
+document.getElementById("best").value = "";
 }
 </script>
 </body>
