@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Couple OS</title>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+<style>
+:root{
+  --bg1:#ff4d6d;
+  --bg2:#ffb3c1;
+  --card:rgba(255,255,255,0.15);
+  --text:#fff;
+}
+
+body{
+margin:0;
+font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial;
+background:linear-gradient(135deg,var(--bg1),var(--bg2));
+color:var(--text);
+height:100vh;
+display:flex;
+flex-direction:column;
+}
+
+/* HEADER (iOS style) */
+header{
+text-align:center;
+padding:14px;
+font-weight:600;
+font-size:20px;
+}
+
+/* MAIN AREA */
+main{
+flex:1;
+overflow-y:auto;
+padding:15px;
+padding-bottom:80px;
+}
+
+/* CARD STYLE (iOS glass) */
+.card{
+background:var(--card);
+backdrop-filter: blur(15px);
+border-radius:18px;
+padding:15px;
+margin-bottom:15px;
+box-shadow:0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* BUTTON (iOS style) */
+button{
+width:100%;
+padding:12px;
+margin-top:10px;
+border:none;
+border-radius:12px;
+font-weight:600;
+background:white;
+color:#111;
+}
+
+/* INPUTS */
+input,textarea,select{
+width:100%;
+padding:12px;
+margin-top:8px;
+border:none;
+border-radius:12px;
+outline:none;
+}
+
+/* TAB BAR */
+.tabbar{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+height:70px;
+background:rgba(255,255,255,0.2);
+backdrop-filter: blur(20px);
+display:flex;
+justify-content:space-around;
+align-items:center;
+border-top:1px solid rgba(255,255,255,0.3);
+}
+
+.tabbar button{
+background:none;
+color:white;
+font-size:12px;
+padding:0;
+width:auto;
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:4px;
+font-weight:500;
+}
+
+/* TABS */
+.tab{
+display:none;
+animation:fade 0.2s ease-in-out;
+}
+
+.active{
+display:block;
+}
+
+@keyframes fade{
+from{opacity:0;transform:translateY(10px);}
+to{opacity:1;transform:translateY(0);}
+}
+
+/* WHEEL */
+canvas{
+width:100%;
+max-width:320px;
+display:block;
+margin:auto;
+border-radius:50%;
+}
+.small{
+opacity:0.8;
+font-size:13px;
+}
+</style>
+</head>
+
+<body>
+
+<header>❤️ D + T App V1</header>
+
+<main>
+
+<!-- HOME -->
+<div id="home" class="tab active">
+<div class="card">
+<h2>💖 Daily Message</h2>
+<p id="msg"></p>
+</div>
+</div>
+
+<!-- WHEEL -->
+<div id="wheelTab" class="tab">
+<div class="card">
+<h3>🎡 Date Wheel</h3>
+<canvas id="wheel" width="400" height="400"></canvas>
+<button onclick="spin()">Spin</button>
+<p id="result"></p>
+</div>
+</div>
+
+<!-- CHECK-IN -->
+<div id="checkTab" class="tab">
+<div class="card">
+<h3>🧾 Weekly Check-In</h3>
+
+<select id="mood">
+<option>😊 Happy</option>
+<option>😐 Neutral</option>
+<option>😔 Off</option>
+<option>❤️ Very Connected</option>
+</select>
+
+<input id="rating" type="number" placeholder="Rating 1-10">
+<textarea id="best" placeholder="Best moment"></textarea>
+
+<button onclick="saveCheck()">Save</button>
+
+</div>
+
+<div class="card">
+<h3>📅 History</h3>
+<div id="history"></div>
+</div>
+</div>
+
+<!-- NOTES -->
+<div id="notesTab" class="tab">
+<div class="card">
+<h3>💌 Notes</h3>
+
+<input id="noteInput" placeholder="Write something...">
+<button onclick="addNote()">Add</button>
+
+<div id="notes"></div>
+</div>
+</div>
+
+</main>
+
+<!-- TAB BAR -->
+<div class="tabbar">
+<button onclick="openTab('home')">🏠<span>Home</span></button>
+<button onclick="openTab('wheelTab')">🎡<span>Wheel</span></button>
+<button onclick="openTab('checkTab')">🧾<span>Check</span></button>
+<button onclick="openTab('notesTab')">💌<span>Notes</span></button>
+</div>
+
+<script>
+
+let options=[
+"🍕 Pizza Night",
+"🌅 Beach Sunset",
+"🍽️ Dinner Date",
+"☕ Coffee Walk",
+"🎬 Movie Night",
+"🎳 Bowling",
+"🌌 Stargazing"
+];
+
+let rotation=0;
+
+/* WHEEL */
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
+
+function draw(){
+const arc=2*Math.PI/options.length;
+ctx.clearRect(0,0,400,400);
+
+for(let i=0;i<options.length;i++){
+let a=i*arc;
+
+ctx.beginPath();
+ctx.moveTo(200,200);
+ctx.arc(200,200,200,a,a+arc);
+ctx.fillStyle=i%2?"#ff6b6b":"#ffd166";
+ctx.fill();
+
+ctx.save();
+ctx.translate(200,200);
+ctx.rotate(a+arc/2);
+ctx.fillStyle="white";
+ctx.font="12px -apple-system";
+ctx.fillText(options[i],80,5);
+ctx.restore();
+}
+}
+
+function spin(){
+const arc=360/options.length;
+rotation+=3600+Math.random()*720;
+
+canvas.style.transform=`rotate(${rotation}deg)`;
+
+setTimeout(()=>{
+let norm=(360-(rotation%360))%360;
+let index=Math.floor(norm/arc);
+
+document.getElementById("result").innerText="Tonight: "+options[index];
+
+confetti({particleCount:200,spread:120,origin:{y:0.6}});
+},5000);
+}
+
+/* TABS */
+function openTab(id){
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+
+/* CHECK INS */
+let checks=JSON.parse(localStorage.getItem("checks")||"[]");
+
+function saveCheck(){
+checks.unshift({
+date:new Date().toLocaleDateString(),
+mood:document.getElementById("mood").value,
+rating:document.getElementById("rating").value,
+best:document.getElementById("best").value
+});
+
+localStorage.setItem("checks",JSON.stringify(checks));
+renderChecks();
+}
+
+function renderChecks(){
+document.getElementById("history").innerHTML=
+checks.map(c=>`
+<div class="card">
+<b>${c.date}</b><br>
+${c.mood} | ${c.rating || ""}/10<br>
+${c.best || ""}
+</div>
+`).join("");
+}
+
+/* NOTES */
+let notes=JSON.parse(localStorage.getItem("notes")||"[]");
+
+function addNote(){
+let val=document.getElementById("noteInput").value;
+if(!val)return;
+
+notes.unshift({text:val});
+localStorage.setItem("notes",JSON.stringify(notes));
+document.getElementById("noteInput").value="";
+renderNotes();
+}
+
+function renderNotes(){
+document.getElementById("notes").innerHTML=
+notes.map(n=>`
+<div class="card">❤️ ${n.text}</div>
+`).join("");
+}
+
+/* HOME MESSAGE */
+const msgs=[
+"You’re my favorite person ❤️",
+"Let’s make tonight special 🌙",
+"I’m lucky I get you ❤️",
+"Small moments = everything ❤️"
+];
+
+document.getElementById("msg").innerText=
+msgs[Math.floor(Math.random()*msgs.length)];
+
+draw();
+renderChecks();
+renderNotes();
+
+</script>
+
+</body>
+</html>
