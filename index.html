@@ -22,7 +22,7 @@ button,input,textarea,select{border:none;border-radius:12px;padding:10px;margin-
 <main>
 <div id="home" class="tab active">
 <div class="card">
-<h2>❤️ Couple OS V2</h2>
+<h2>❤️ D + T </h2>
 <p id="days"></p>
 <p id="thought">Nobody has tapped Thinking Of You yet ❤️</p>
 <button onclick="thinking()">❤️ Thinking Of You</button>
@@ -39,7 +39,7 @@ button,input,textarea,select{border:none;border-radius:12px;padding:10px;margin-
 
 <div id="checkTab" class="tab">
 <div class="card">
-<select id="mood"><option>😊 Happy</option><option>❤️ Connected</option><option>😐 Neutral</option></select>
+<select id="mood"><option>😊 Happy</option><option>❤️ Connected</option><option>😐 Neutral</option></select>🥲 Sad</option></select>
 <textarea id="best" placeholder="Best moment"></textarea>
 <button onclick="saveCheck()">Check In</button>
 <div id="checks"></div>
@@ -88,7 +88,7 @@ function saveCheck(){let arr=JSON.parse(localStorage.getItem('checks')||'[]'); a
 function renderChecks(){let arr=JSON.parse(localStorage.getItem('checks')||'[]'); checks.innerHTML=arr.map(x=>'<div class="card">'+x.m+'<br>'+x.b+'</div>').join('');}
 renderChecks();
 
-const ideas=['🍕 Pizza Night','🌅 Beach Sunset','🎬 Movie Night','☕ Coffee Walk'];
+const ideas=['🍕 Pizza Night','🌅 Beach Sunset','🎬 Movie Night','☕ Coffee Walk','Cooking together','Bedrot Junk Food'];
 function spin(){let pick=ideas[Math.floor(Math.random()*ideas.length)]; result.innerText='Tonight: '+pick; confetti();}
 
 const map=L.map('map').setView([30.3322,-81.6557],11);
