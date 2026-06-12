@@ -51,9 +51,9 @@ button,input,textarea,select{border:none;border-radius:12px;padding:10px;margin-
   <option>🤩 Excited</option>
 </select>
 <textarea id="best" placeholder="Best moment"></textarea>
-<button onclick="saveCheck()
+<button onclick="saveCheck()">
 Check In
-  </button>
+</button>
 
 <div id="checks"></div>
 </div>
@@ -120,12 +120,8 @@ function addNote(){let n=note.value.trim(); if(!n)return; let arr=JSON.parse(loc
 function renderNotes(){let arr=JSON.parse(localStorage.getItem('notes')||'[]'); notes.innerHTML=arr.map(x=>'<div class="card">❤️ '+x+'</div>').join('');}
 renderNotes();
 
-function saveCheck(){let arr=JSON.parse(localStorage.getItem('checks')||'[]'); arr.unshift({m:mood.value,b:best.value}); localStorage.setItem('checks',JSON.stringify(arr)); renderChecks(); best.value='';}
 function renderChecks(){let arr=JSON.parse(localStorage.getItem('checks')||'[]'); checks.innerHTML=arr.map(x=>'<div class="card">'+x.m+'<br>'+x.b+'</div>').join('');}
 renderChecks();
-
-const ideas=['🍕 Pizza Night','🌅 Beach Sunset','🎬 Movie Night','☕ Coffee Walk','Cooking together','Bedrot Junk Food'];
-function spin(){let pick=ideas[Math.floor(Math.random()*ideas.length)]; result.innerText='Tonight: '+pick; confetti();}
 
 const map=L.map('map').setView([30.3322,-81.6557],11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
