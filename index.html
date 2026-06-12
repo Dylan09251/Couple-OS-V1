@@ -60,10 +60,33 @@ Check In
 </div>
 
 <div id="wheelTab" class="tab">
+
 <div class="card">
-<button onclick="spin()">🎡 Spin Date Wheel</button>
-<p id="result"></p>
+
+<h3>🎡 Date Wheel</h3>
+
+<div style="
+font-size:40px;
+text-align:center;
+margin-bottom:-20px;
+">
+▼
 </div>
+
+<canvas
+id="wheel"
+width="400"
+height="400">
+</canvas>
+
+<button onclick="spin()">
+🎡 Spin Date Wheel
+</button>
+
+<p id="result"></p>
+
+</div>
+
 </div>
 
 <div id="mapTab" class="tab">
@@ -138,6 +161,104 @@ JSON.stringify(arr)
 renderChecks();
 
 document.getElementById("best").value = "";
+}
+  const options = [
+    "🍕 Pizza Night",
+    "🌅 Beach Sunset",
+    "☕ Coffee Date",
+    "🎬 Movie Night",
+    "🍦 Ice Cream Run",
+    "🎳 Bowling",
+    "🏖️ Beach Day",
+    "🚗 Road Trip",
+    "🍔 Try New Restaurant",
+    "🎮 Game Night"
+];
+
+let rotation = 0;
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+function drawWheel() {
+
+    ctx.clearRect(0,0,400,400);
+
+    const arc = (2 * Math.PI) / options.length;
+
+    for(let i=0;i<options.length;i++){
+
+        const angle = i * arc;
+
+        ctx.beginPath();
+        ctx.moveTo(200,200);
+
+        ctx.arc(
+            200,
+            200,
+            200,
+            angle,
+            angle + arc
+        );
+
+        ctx.fillStyle =
+            i % 2 === 0
+            ? "#ff6b81"
+            : "#ffd166";
+
+        ctx.fill();
+
+        ctx.save();
+
+        ctx.translate(200,200);
+        ctx.rotate(angle + arc/2);
+
+        ctx.fillStyle = "white";
+        ctx.font = "14px sans-serif";
+
+        ctx.fillText(
+            options[i],
+            90,
+            5
+        );
+
+        ctx.restore();
+    }
+}
+
+drawWheel();
+
+function spin(){
+
+    const arcDeg = 360 / options.length;
+
+    rotation += 2500 + Math.random() * 800;
+
+    canvas.style.transition =
+        "transform 3s ease-out";
+
+    canvas.style.transform =
+        `rotate(${rotation}deg)`;
+
+    setTimeout(()=>{
+
+        const normalized =
+            (360 - (rotation % 360)) % 360;
+
+        const index =
+            Math.floor(normalized / arcDeg);
+
+        document.getElementById("result")
+        .innerHTML =
+        `❤️ Tonight's Date:<br><strong>${options[index]}</strong>`;
+
+        confetti({
+            particleCount: 200,
+            spread: 120,
+            origin:{y:0.6}
+        });
+
+    },3000);
 }
 </script>
 </body>
