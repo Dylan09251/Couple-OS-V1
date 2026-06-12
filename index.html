@@ -104,10 +104,38 @@ border-radius:50%;
 
 <!-- HOME -->
 <div id="home" class="tab active">
+
 <div class="card">
-<h3>💖 Live Couple Feed</h3>
-<p>Everything syncs instantly between devices.</p>
+<h2>❤️ D + T Dashboard</h2>
+
+<p id="daysTogether">⏳ Together for ... days</p>
+
+<p id="latestMood">😊 Latest mood: --</p>
+
+<p id="latestNote">💌 Last note: --</p>
+
+<p id="streak">🔥 Check-in streak: 0 days</p>
+
+<p id="memory">📸 Memory: --</p>
+
 </div>
+
+<div class="card">
+<h3>⚡ Quick Actions</h3>
+
+<button onclick="openTab('notesTab')">
+💌 Send Love Note
+</button>
+
+<button onclick="openTab('checkTab')">
+🧾 Check In
+</button>
+
+<button onclick="openTab('wheelTab')">
+🎡 Pick Tonight's Date
+</button>
+</div>
+
 </div>
 
 <!-- WHEEL -->
