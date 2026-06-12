@@ -8,32 +8,23 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
 <style>
-:root{
-  --bg1:#ff4d6d;
-  --bg2:#ffb3c1;
-  --card:rgba(255,255,255,0.15);
-  --text:#fff;
-}
-
 body{
 margin:0;
-font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial;
-background:linear-gradient(135deg,var(--bg1),var(--bg2));
-color:var(--text);
+font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display";
+background:linear-gradient(135deg,#ff4d6d,#ffb3c1);
+color:white;
 height:100vh;
 display:flex;
 flex-direction:column;
 }
 
-/* HEADER (iOS style) */
 header{
 text-align:center;
 padding:14px;
-font-weight:600;
 font-size:20px;
+font-weight:600;
 }
 
-/* MAIN AREA */
 main{
 flex:1;
 overflow-y:auto;
@@ -41,17 +32,23 @@ padding:15px;
 padding-bottom:80px;
 }
 
-/* CARD STYLE (iOS glass) */
 .card{
-background:var(--card);
-backdrop-filter: blur(15px);
+background:rgba(255,255,255,0.15);
+backdrop-filter:blur(18px);
 border-radius:18px;
 padding:15px;
 margin-bottom:15px;
-box-shadow:0 10px 25px rgba(0,0,0,0.15);
 }
 
-/* BUTTON (iOS style) */
+input,textarea,select{
+width:100%;
+padding:12px;
+border:none;
+border-radius:12px;
+margin-top:8px;
+outline:none;
+}
+
 button{
 width:100%;
 padding:12px;
@@ -60,20 +57,9 @@ border:none;
 border-radius:12px;
 font-weight:600;
 background:white;
-color:#111;
+cursor:pointer;
 }
 
-/* INPUTS */
-input,textarea,select{
-width:100%;
-padding:12px;
-margin-top:8px;
-border:none;
-border-radius:12px;
-outline:none;
-}
-
-/* TAB BAR */
 .tabbar{
 position:fixed;
 bottom:0;
@@ -81,42 +67,25 @@ left:0;
 right:0;
 height:70px;
 background:rgba(255,255,255,0.2);
-backdrop-filter: blur(20px);
+backdrop-filter:blur(20px);
 display:flex;
 justify-content:space-around;
 align-items:center;
-border-top:1px solid rgba(255,255,255,0.3);
 }
 
 .tabbar button{
 background:none;
 color:white;
 font-size:12px;
-padding:0;
-width:auto;
 display:flex;
 flex-direction:column;
-align-items:center;
 gap:4px;
-font-weight:500;
+width:auto;
 }
 
-/* TABS */
-.tab{
-display:none;
-animation:fade 0.2s ease-in-out;
-}
+.tab{display:none;}
+.active{display:block;}
 
-.active{
-display:block;
-}
-
-@keyframes fade{
-from{opacity:0;transform:translateY(10px);}
-to{opacity:1;transform:translateY(0);}
-}
-
-/* WHEEL */
 canvas{
 width:100%;
 max-width:320px;
@@ -124,24 +93,20 @@ display:block;
 margin:auto;
 border-radius:50%;
 }
-.small{
-opacity:0.8;
-font-size:13px;
-}
 </style>
 </head>
 
 <body>
 
-<header>❤️ D + T App V1</header>
+<header>❤️ Couple OS</header>
 
 <main>
 
 <!-- HOME -->
 <div id="home" class="tab active">
 <div class="card">
-<h2>💖 Daily Message</h2>
-<p id="msg"></p>
+<h3>💖 Live Couple Feed</h3>
+<p>Everything syncs instantly between devices.</p>
 </div>
 </div>
 
@@ -158,35 +123,34 @@ font-size:13px;
 <!-- CHECK-IN -->
 <div id="checkTab" class="tab">
 <div class="card">
-<h3>🧾 Weekly Check-In</h3>
+<h3>🧾 Check-In</h3>
 
 <select id="mood">
 <option>😊 Happy</option>
 <option>😐 Neutral</option>
 <option>😔 Off</option>
-<option>❤️ Very Connected</option>
+<option>❤️ Connected</option>
 </select>
 
 <input id="rating" type="number" placeholder="Rating 1-10">
 <textarea id="best" placeholder="Best moment"></textarea>
 
-<button onclick="saveCheck()">Save</button>
-
+<button onclick="saveCheck()">Send Check-In</button>
 </div>
 
 <div class="card">
-<h3>📅 History</h3>
-<div id="history"></div>
+<h3>📅 Live Check-Ins</h3>
+<div id="checks"></div>
 </div>
 </div>
 
 <!-- NOTES -->
 <div id="notesTab" class="tab">
 <div class="card">
-<h3>💌 Notes</h3>
+<h3>💌 Live Notes</h3>
 
 <input id="noteInput" placeholder="Write something...">
-<button onclick="addNote()">Add</button>
+<button onclick="addNote()">Send</button>
 
 <div id="notes"></div>
 </div>
@@ -202,7 +166,88 @@ font-size:13px;
 <button onclick="openTab('notesTab')">💌<span>Notes</span></button>
 </div>
 
-<script>
+<script type="module">
+
+/* FIREBASE */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+getFirestore,
+collection,
+addDoc,
+query,
+orderBy,
+onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyApXz4ql1vGX7RYA2QnemnSUmJEWIy6NZk",
+authDomain: "couples-os-561e1.firebaseapp.com",
+projectId: "couples-os-561e1",
+storageBucket: "couples-os-561e1.firebasestorage.app",
+messagingSenderId: "321732798011",
+appId: "1:321732798011:web:834e5b8611a129d74c1e1e"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* TABS */
+window.openTab = function(id){
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+
+/* ---------------- NOTES ---------------- */
+
+window.addNote = async function(){
+let val = document.getElementById("noteInput").value;
+if(!val.trim()) return;
+
+await addDoc(collection(db,"notes"),{
+text:val.trim(),
+time:Date.now()
+});
+
+document.getElementById("noteInput").value="";
+}
+
+const notesQ = query(collection(db,"notes"),orderBy("time","desc"));
+
+onSnapshot(notesQ,(snap)=>{
+let html="";
+snap.forEach(d=>{
+html+=`<div class="card">❤️ ${d.data().text}</div>`;
+});
+document.getElementById("notes").innerHTML=html;
+});
+
+/* ---------------- CHECK-INS ---------------- */
+
+window.saveCheck = async function(){
+await addDoc(collection(db,"checks"),{
+mood:document.getElementById("mood").value,
+rating:document.getElementById("rating").value,
+best:document.getElementById("best").value,
+time:Date.now()
+});
+}
+
+const checksQ = query(collection(db,"checks"),orderBy("time","desc"));
+
+onSnapshot(checksQ,(snap)=>{
+let html="";
+snap.forEach(d=>{
+let c=d.data();
+html+=`
+<div class="card">
+${c.mood} | ${c.rating}/10<br>
+${c.best || ""}
+</div>`;
+});
+document.getElementById("checks").innerHTML=html;
+});
+
+/* ---------------- WHEEL ---------------- */
 
 let options=[
 "🍕 Pizza Night",
@@ -210,20 +255,16 @@ let options=[
 "🍽️ Dinner Date",
 "☕ Coffee Walk",
 "🎬 Movie Night",
-"🎳 Bowling",
-"🌌 Stargazing",
-"Stay in and cook/movie"  
+"🎳 Bowling"
 ];
 
 let rotation=0;
 
-/* WHEEL */
 const canvas=document.getElementById("wheel");
 const ctx=canvas.getContext("2d");
 
 function draw(){
 const arc=2*Math.PI/options.length;
-ctx.clearRect(0,0,400,400);
 
 for(let i=0;i<options.length;i++){
 let a=i*arc;
@@ -233,20 +274,13 @@ ctx.moveTo(200,200);
 ctx.arc(200,200,200,a,a+arc);
 ctx.fillStyle=i%2?"#ff6b6b":"#ffd166";
 ctx.fill();
-
-ctx.save();
-ctx.translate(200,200);
-ctx.rotate(a+arc/2);
-ctx.fillStyle="white";
-ctx.font="12px -apple-system";
-ctx.fillText(options[i],80,5);
-ctx.restore();
 }
 }
 
-function spin(){
+window.spin=function(){
 const arc=360/options.length;
-rotation+=3600+Math.random()*720;
+
+rotation += 2500 + Math.random()*600;
 
 canvas.style.transform=`rotate(${rotation}deg)`;
 
@@ -254,78 +288,18 @@ setTimeout(()=>{
 let norm=(360-(rotation%360))%360;
 let index=Math.floor(norm/arc);
 
-document.getElementById("result").innerText="Tonight: "+options[index];
+document.getElementById("result").innerText=
+"Tonight: " + options[index];
 
-confetti({particleCount:200,spread:120,origin:{y:0.6}});
-},5000);
-}
-
-/* TABS */
-function openTab(id){
-document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
-
-/* CHECK INS */
-let checks=JSON.parse(localStorage.getItem("checks")||"[]");
-
-function saveCheck(){
-checks.unshift({
-date:new Date().toLocaleDateString(),
-mood:document.getElementById("mood").value,
-rating:document.getElementById("rating").value,
-best:document.getElementById("best").value
+confetti({
+particleCount:200,
+spread:120,
+origin:{y:0.6}
 });
-
-localStorage.setItem("checks",JSON.stringify(checks));
-renderChecks();
+},2200);
 }
-
-function renderChecks(){
-document.getElementById("history").innerHTML=
-checks.map(c=>`
-<div class="card">
-<b>${c.date}</b><br>
-${c.mood} | ${c.rating || ""}/10<br>
-${c.best || ""}
-</div>
-`).join("");
-}
-
-/* NOTES */
-let notes=JSON.parse(localStorage.getItem("notes")||"[]");
-
-function addNote(){
-let val=document.getElementById("noteInput").value;
-if(!val)return;
-
-notes.unshift({text:val});
-localStorage.setItem("notes",JSON.stringify(notes));
-document.getElementById("noteInput").value="";
-renderNotes();
-}
-
-function renderNotes(){
-document.getElementById("notes").innerHTML=
-notes.map(n=>`
-<div class="card">❤️ ${n.text}</div>
-`).join("");
-}
-
-/* HOME MESSAGE */
-const msgs=[
-"You’re my favorite person ❤️",
-"Let’s make tonight special 🌙",
-"I’m lucky I get you ❤️",
-"Small moments = everything ❤️"
-];
-
-document.getElementById("msg").innerText=
-msgs[Math.floor(Math.random()*msgs.length)];
 
 draw();
-renderChecks();
-renderNotes();
 
 </script>
 
