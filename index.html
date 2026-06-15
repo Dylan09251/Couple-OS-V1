@@ -4,9 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Couple OS V2</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <style>
 body{margin:0;font-family:sans-serif;background:linear-gradient(135deg,#ff4d6d,#ffb3c1);color:white}
 main{padding:15px;padding-bottom:90px}
@@ -18,8 +22,10 @@ button,input,textarea,select{border:none;border-radius:12px;padding:10px;margin-
 #map{height:350px;border-radius:12px}
 </style>
 </head>
+
 <body>
 <main>
+
 <div id="home" class="tab active">
 <div class="card">
 <h2>❤️ D + T </h2>
@@ -40,55 +46,37 @@ button,input,textarea,select{border:none;border-radius:12px;padding:10px;margin-
 <div id="checkTab" class="tab">
 <div class="card">
 <select id="mood">
-  <option>😊 Happy</option>
-  <option>❤️ Connected</option>
-  <option>😐 Neutral</option>
-  <option>🥲 Sad</option>
-  <option>😔 Down</option>
-  <option>😡 Frustrated</option>
-  <option>🥺 Need Support</option>
-  <option>😍 In Love</option>
-  <option>🤩 Excited</option>
-  <option>🍑 Horny</option>
-  <option>🖕🏻 Livid</option>
+<option>😊 Happy</option>
+<option>❤️ Connected</option>
+<option>😐 Neutral</option>
+<option>🥲 Sad</option>
+<option>😔 Down</option>
+<option>😡 Frustrated</option>
+<option>🥺 Need Support</option>
+<option>😍 In Love</option>
+<option>🤩 Excited</option>
+<option>🍑 Horny</option>
+<option>🖕🏻 Livid</option>
 </select>
+
 <textarea id="best" placeholder="Best moment"></textarea>
-<button onclick="saveCheck()">
-Check In
-</button>
+<button onclick="saveCheck()">Check In</button>
 
 <div id="checks"></div>
 </div>
 </div>
 
 <div id="wheelTab" class="tab">
-
 <div class="card">
-
 <h3>🎡 Date Wheel</h3>
 
-<div style="
-font-size:40px;
-text-align:center;
-margin-bottom:-20px;
-">
-▼
-</div>
+<div style="font-size:40px;text-align:center;margin-bottom:-20px;">▼</div>
 
-<canvas
-id="wheel"
-width="400"
-height="400">
-</canvas>
+<canvas id="wheel" width="400" height="400"></canvas>
 
-<button onclick="spin()">
-🎡 Spin Date Wheel
-</button>
-
+<button onclick="spin()">🎡 Spin Date Wheel</button>
 <p id="result"></p>
-
 </div>
-
 </div>
 
 <div id="mapTab" class="tab">
@@ -97,8 +85,12 @@ height="400">
 <input id="placeMemory" placeholder="Memory">
 <button onclick="addPlace()">Add Place</button>
 </div>
-<div class="card"><div id="map"></div></div>
+
+<div class="card">
+<div id="map"></div>
 </div>
+</div>
+
 </main>
 
 <div class="tabbar">
@@ -109,24 +101,29 @@ height="400">
 <button onclick="openTab('mapTab')">🗺️</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
 <script>
 /* =========================
-   SUPABASE SETUP
+   ELEMENTS (FIXED CRASH)
+========================= */
+const days = document.getElementById("days");
+const thought = document.getElementById("thought");
+const notesEl = document.getElementById("notes");
+const checksEl = document.getElementById("checks");
+const noteEl = document.getElementById("note");
+const placeNameEl = document.getElementById("placeName");
+const placeMemoryEl = document.getElementById("placeMemory");
+
+/* =========================
+   SUPABASE
 ========================= */
 const supabase = window.supabase.createClient(
-  "https://myaahpincegqawwtfcfd.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15YWFocGluY2VncWF3d3RmY2ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NzYwNTUsImV4cCI6MjA5NzA1MjA1NX0.uN6GJOf7dW9ICcJzYO4hvtp3vPcrce0M1GXYgrpcPQw"
+  "YOUR_SUPABASE_URL",
+  "YOUR_SUPABASE_ANON_KEY"
 );
-
-/* single shared couple space */
-const coupleId = "main";
 
 /* =========================
    BASIC UI
 ========================= */
-
 const start = new Date('2026-05-23');
 
 days.innerText =
@@ -134,31 +131,25 @@ days.innerText =
   Math.floor((Date.now() - start) / (1000 * 60 * 60 * 24)) +
   ' days';
 
-function openTab(id) {
-  document.querySelectorAll('.tab')
-    .forEach(t => t.classList.remove('active'));
-
+function openTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-
-  if (id === 'mapTab')
-    setTimeout(() => map.invalidateSize(), 100);
 }
 
 /* =========================
-   SUPABASE HELPERS
+   SAFE SUPABASE
 ========================= */
-
-async function getData(key) {
+async function getData(key){
   const { data } = await supabase
     .from("couple_data")
     .select("value")
     .eq("key", key)
-    .single();
+    .maybeSingle();
 
-  return data?.value;
+  return data?.value ?? null;
 }
 
-async function saveData(key, value) {
+async function saveData(key,value){
   await supabase
     .from("couple_data")
     .upsert({ key, value });
@@ -167,68 +158,42 @@ async function saveData(key, value) {
 /* =========================
    THINKING OF YOU
 ========================= */
-
-async function thinking() {
+async function thinking(){
   const time = new Date().toLocaleString();
-
   await saveData("thought", time);
-
-  thought.innerText =
-    '❤️ Thinking of you tapped at ' + time;
+  thought.innerText = "❤️ Thinking of you tapped at " + time;
 }
 
-async function loadThought() {
+async function loadThought(){
   const t = await getData("thought");
-
-  if (t)
-    thought.innerText =
-      '❤️ Thinking of you tapped at ' + t;
+  if(t) thought.innerText = "❤️ Thinking of you tapped at " + t;
 }
 
 /* =========================
    NOTES
 ========================= */
-
-async function addNote() {
-  let n = note.value.trim();
-  if (!n) return;
+async function addNote(){
+  let n = noteEl.value.trim();
+  if(!n) return;
 
   let arr = await getData("notes") || [];
-
   arr.unshift(n);
 
   await saveData("notes", arr);
 
+  noteEl.value = "";
   renderNotes();
-  note.value = '';
 }
 
-async function renderNotes() {
+async function renderNotes(){
   let arr = await getData("notes") || [];
-
-  notes.innerHTML = arr
-    .map(x => `<div class="card">❤️ ${x}</div>`)
-    .join('');
+  notesEl.innerHTML = arr.map(x=>`<div class="card">❤️ ${x}</div>`).join('');
 }
 
 /* =========================
    CHECK-INS
 ========================= */
-
-async function renderChecks() {
-  let arr = await getData("checks") || [];
-
-  checks.innerHTML = arr
-    .map(x => `<div class="card">${x.m}<br>${x.b}</div>`)
-    .join('');
-}
-
-async function saveCheck() {
-
-  if (document.getElementById("mood").value === "😢 Sad") {
-    alert("❤️ Remember you're loved.");
-  }
-
+async function saveCheck(){
   let arr = await getData("checks") || [];
 
   arr.unshift({
@@ -238,153 +203,136 @@ async function saveCheck() {
 
   await saveData("checks", arr);
 
-  renderChecks();
-
   document.getElementById("best").value = "";
+  renderChecks();
+}
+
+async function renderChecks(){
+  let arr = await getData("checks") || [];
+  checksEl.innerHTML = arr.map(x=>`<div class="card">${x.m}<br>${x.b}</div>`).join('');
 }
 
 /* =========================
-   PLACES / MAP
+   MAP
 ========================= */
-
-const map = L.map('map').setView([30.3322, -81.6557], 11);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-  .addTo(map);
+const map = L.map('map').setView([30.3322,-81.6557],11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let places = [];
+let markers = [];
 
-async function loadPlaces() {
+async function loadPlaces(){
   places = await getData("places") || [];
   drawPlaces();
 }
 
-function drawPlaces() {
-  places.forEach(p =>
-    L.marker([p.lat, p.lon])
+function drawPlaces(){
+  markers.forEach(m=>map.removeLayer(m));
+  markers = [];
+
+  places.forEach(p=>{
+    const marker = L.marker([p.lat,p.lon])
       .addTo(map)
-      .bindPopup(`<b>${p.name}</b><br>${p.memory}`)
-  );
+      .bindPopup(`<b>${p.name}</b><br>${p.memory}`);
+    markers.push(marker);
+  });
 }
 
-async function addPlace() {
+async function addPlace(){
+  let name = placeNameEl.value.trim();
+  if(!name) return;
 
-  let name = placeName.value.trim();
-  if (!name) return;
+  let placesData = await getData("places") || [];
 
-  let p = {
+  placesData.push({
     name,
-    memory: placeMemory.value,
-    lat: 30.3322 + (Math.random() - .5) * .2,
-    lon: -81.6557 + (Math.random() - .5) * .2
-  };
+    memory: placeMemoryEl.value,
+    lat: 30.3322 + (Math.random()-0.5)*0.2,
+    lon: -81.6557 + (Math.random()-0.5)*0.2
+  });
 
-  places.push(p);
+  await saveData("places", placesData);
 
-  await saveData("places", places);
-
-  location.reload();
+  placeNameEl.value="";
+  placeMemoryEl.value="";
+  loadPlaces();
 }
 
 /* =========================
-   DATE WHEEL (UNCHANGED)
+   DATE WHEEL
 ========================= */
-
-const options = [
-  "🍕 Pizza Night",
-  "🌅 Beach Sunset",
-  "☕ Coffee Date",
-  "🎬 Movie Night",
-  "🍦 Ice Cream Run",
-  "🎳 Bowling",
-  "🏖️ Beach Day",
-  "🚗 Road Trip",
-  "🍔 Try New Restaurant",
-  "🎮 Game Night"
+const options=[
+"🍕 Pizza Night","🌅 Beach Sunset","☕ Coffee Date","🎬 Movie Night",
+"🍦 Ice Cream Run","🎳 Bowling","🏖️ Beach Day","🚗 Road Trip",
+"🍔 Try New Restaurant","🎮 Game Night"
 ];
 
-let rotation = 0;
+let rotation=0;
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
 
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
+function drawWheel(){
+  ctx.clearRect(0,0,400,400);
+  const arc=(2*Math.PI)/options.length;
 
-function drawWheel() {
-  ctx.clearRect(0, 0, 400, 400);
-
-  const arc = (2 * Math.PI) / options.length;
-
-  for (let i = 0; i < options.length; i++) {
-
-    const angle = i * arc;
+  for(let i=0;i<options.length;i++){
+    const angle=i*arc;
 
     ctx.beginPath();
-    ctx.moveTo(200, 200);
+    ctx.moveTo(200,200);
+    ctx.arc(200,200,200,angle,angle+arc);
 
-    ctx.arc(200, 200, 200, angle, angle + arc);
-
-    ctx.fillStyle = i % 2 === 0 ? "#ff6b81" : "#ffd166";
-
+    ctx.fillStyle=i%2?"#ffd166":"#ff6b81";
     ctx.fill();
 
     ctx.save();
+    ctx.translate(200,200);
+    ctx.rotate(angle+arc/2);
 
-    ctx.translate(200, 200);
-    ctx.rotate(angle + arc / 2);
-
-    ctx.fillStyle = "white";
-    ctx.font = "14px sans-serif";
-
-    ctx.fillText(options[i], 90, 5);
-
+    ctx.fillStyle="white";
+    ctx.font="14px sans-serif";
+    ctx.fillText(options[i],90,5);
     ctx.restore();
   }
 }
-
 drawWheel();
 
-function spin() {
+function spin(){
+  const arcDeg=360/options.length;
+  rotation+=2500+Math.random()*800;
 
-  const arcDeg = 360 / options.length;
+  canvas.style.transition="transform 3s ease-out";
+  canvas.style.transform=`rotate(${rotation}deg)`;
 
-  rotation += 2500 + Math.random() * 800;
+  setTimeout(()=>{
+    const normalized=(360-(rotation%360))%360;
+    const index=Math.floor(normalized/arcDeg);
 
-  canvas.style.transition = "transform 3s ease-out";
-  canvas.style.transform = `rotate(${rotation}deg)`;
-
-  setTimeout(() => {
-
-    const normalized =
-      (360 - (rotation % 360)) % 360;
-
-    const index =
-      Math.floor(normalized / arcDeg);
-
-    document.getElementById("result").innerHTML =
+    document.getElementById("result").innerHTML=
       `❤️ Tonight's Date:<br><strong>${options[index]}</strong>`;
 
-    confetti({
-      particleCount: 200,
-      spread: 120,
-      origin: { y: 0.6 }
-    });
-
-  }, 3000);
+    confetti({particleCount:200,spread:120,origin:{y:0.6}});
+  },3000);
 }
+
+/* =========================
+   INIT
+========================= */
+window.addEventListener("load", async ()=>{
+  renderNotes();
+  renderChecks();
+  loadThought();
+  loadPlaces();
+});
 
 /* =========================
    REALTIME SYNC
 ========================= */
-
 supabase
   .channel("couple-sync")
-  .on(
-    "postgres_changes",
-    {
-      event: "*",
-      schema: "public",
-      table: "couple_data"
-    },
-    () => {
+  .on("postgres_changes",
+    {event:"*",schema:"public",table:"couple_data"},
+    ()=>{
       renderNotes();
       renderChecks();
       loadThought();
@@ -392,16 +340,7 @@ supabase
     }
   )
   .subscribe();
-
-/* =========================
-   INITIAL LOAD
-========================= */
-
-renderNotes();
-renderChecks();
-loadThought();
-loadPlaces();
-
 </script>
+
 </body>
 </html>
