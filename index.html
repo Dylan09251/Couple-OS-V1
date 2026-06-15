@@ -110,154 +110,207 @@ height="400">
 </div>
 
 <script>
-const start=new Date('2026-05-23');
-days.innerText='❤️ Together for '+Math.floor((Date.now()-start)/(1000*60*60*24))+' days';
-
-function openTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='mapTab')setTimeout(()=>map.invalidateSize(),100);}
-
-function thinking(){localStorage.setItem('thought',new Date().toLocaleString());thought.innerText='❤️ Thinking of you tapped at '+localStorage.getItem('thought');}
-if(localStorage.getItem('thought')) thought.innerText='❤️ Thinking of you tapped at '+localStorage.getItem('thought');
-
-function addNote(){let n=note.value.trim(); if(!n)return; let arr=JSON.parse(localStorage.getItem('notes')||'[]'); arr.unshift(n); localStorage.setItem('notes',JSON.stringify(arr)); renderNotes(); note.value='';}
-function renderNotes(){let arr=JSON.parse(localStorage.getItem('notes')||'[]'); notes.innerHTML=arr.map(x=>'<div class="card">❤️ '+x+'</div>').join('');}
-renderNotes();
-
-function renderChecks(){let arr=JSON.parse(localStorage.getItem('checks')||'[]'); checks.innerHTML=arr.map(x=>'<div class="card">'+x.m+'<br>'+x.b+'</div>').join('');}
-renderChecks();
-
-const map=L.map('map').setView([30.3322,-81.6557],11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-let places=JSON.parse(localStorage.getItem('places')||'[]');
-function drawPlaces(){places.forEach(p=>L.marker([p.lat,p.lon]).addTo(map).bindPopup('<b>'+p.name+'</b><br>'+p.memory));}
-drawPlaces();
-function addPlace(){
-let name=placeName.value.trim(); if(!name)return;
-let p={name,memory:placeMemory.value,lat:30.3322+(Math.random()-.5)*.2,lon:-81.6557+(Math.random()-.5)*.2};
-places.push(p); localStorage.setItem('places',JSON.stringify(places)); location.reload();
-}
-function saveCheck(){
-
-if(document.getElementById("mood").value === "😢 Sad"){
-alert("❤️ Remember you're loved.");
-}
-
-let arr =
-JSON.parse(
-localStorage.getItem("checks") || "[]"
+const supabase = window.supabase.createClient(
+  "https://myaahpincegqawwtfcfd.supabase.co",
+  "sb_publishable_jULm6DqoWuGHNh3ag6qKig__hESizl5"
 );
 
-arr.unshift({
-m: document.getElementById("mood").value,
-b: document.getElementById("best").value
+/* =========================
+   ELEMENTS
+========================= */
+const days = document.getElementById("days");
+const thought = document.getElementById("thought");
+const notesEl = document.getElementById("notes");
+const checksEl = document.getElementById("checks");
+const noteEl = document.getElementById("note");
+const placeNameEl = document.getElementById("placeName");
+const placeMemoryEl = document.getElementById("placeMemory");
+
+/* =========================
+   SAFE DB LAYER (NO CRASHES)
+========================= */
+async function getData(key) {
+  try {
+    const { data, error } = await supabase
+      .from("couple_data")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data.value;
+  } catch {
+    return null;
+  }
+}
+
+async function saveData(key, value) {
+  try {
+    await supabase
+      .from("couple_data")
+      .upsert({ key, value });
+  } catch (e) {
+    console.log("save error", e);
+  }
+}
+
+/* =========================
+   STREAK (CROSS DEVICE)
+========================= */
+let startDate = new Date("2026-05-23");
+
+async function loadStreak() {
+  const stored = await getData("start_date");
+
+  if (stored) {
+    startDate = new Date(stored);
+  } else {
+    await saveData("start_date", "2026-05-23");
+  }
+
+  updateStreak();
+}
+
+function updateStreak() {
+  const daysTogether = Math.floor(
+    (Date.now() - startDate) / (1000 * 60 * 60 * 24)
+  );
+
+  days.innerText = `❤️ Together for ${daysTogether} days`;
+}
+
+setInterval(updateStreak, 3600000);
+
+/* =========================
+   THOUGHT
+========================= */
+async function thinking() {
+  const time = new Date().toLocaleString();
+
+  await saveData("thought", time);
+
+  thought.innerText = "❤️ Thinking of you tapped at " + time;
+}
+
+async function loadThought() {
+  const t = await getData("thought");
+  if (t) thought.innerText = "❤️ Thinking of you tapped at " + t;
+}
+
+/* =========================
+   NOTES
+========================= */
+async function addNote() {
+  const n = noteEl.value.trim();
+  if (!n) return;
+
+  let arr = await getData("notes");
+  if (!Array.isArray(arr)) arr = [];
+
+  arr.unshift(n);
+
+  await saveData("notes", arr);
+
+  noteEl.value = "";
+  renderNotes();
+}
+
+async function renderNotes() {
+  let arr = await getData("notes");
+  if (!Array.isArray(arr)) arr = [];
+
+  notesEl.innerHTML = arr
+    .map(x => `<div class="card">❤️ ${x}</div>`)
+    .join("");
+}
+
+/* =========================
+   CHECK-INS
+========================= */
+async function saveCheck() {
+  let arr = await getData("checks");
+  if (!Array.isArray(arr)) arr = [];
+
+  arr.unshift({
+    m: document.getElementById("mood").value,
+    b: document.getElementById("best").value
+  });
+
+  await saveData("checks", arr);
+
+  document.getElementById("best").value = "";
+  renderChecks();
+}
+
+async function renderChecks() {
+  let arr = await getData("checks");
+  if (!Array.isArray(arr)) arr = [];
+
+  checksEl.innerHTML = arr
+    .map(x => `<div class="card">${x.m || ""}<br>${x.b || ""}</div>`)
+    .join("");
+}
+
+/* =========================
+   MAP
+========================= */
+const map = L.map("map").setView([30.3322, -81.6557], 11);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+let places = [];
+let markers = [];
+
+async function loadPlaces() {
+  const data = await getData("places");
+  places = Array.isArray(data) ? data : [];
+  drawPlaces();
+}
+
+function drawPlaces() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  places.forEach(p => {
+    const marker = L.marker([p.lat, p.lon])
+      .addTo(map)
+      .bindPopup(`<b>${p.name}</b><br>${p.memory}`);
+
+    markers.push(marker);
+  });
+}
+
+async function addPlace() {
+  const name = placeNameEl.value.trim();
+  if (!name) return;
+
+  let data = await getData("places");
+  places = Array.isArray(data) ? data : [];
+
+  places.push({
+    name,
+    memory: placeMemoryEl.value,
+    lat: 30.3322 + (Math.random() - 0.5) * 0.2,
+    lon: -81.6557 + (Math.random() - 0.5) * 0.2
+  });
+
+  await saveData("places", places);
+
+  placeNameEl.value = "";
+  placeMemoryEl.value = "";
+
+  loadPlaces();
+}
+
+/* =========================
+   INIT
+========================= */
+window.addEventListener("load", async () => {
+  await loadStreak();
+  await renderNotes();
+  await renderChecks();
+  await loadThought();
+  await loadPlaces();
 });
-
-localStorage.setItem(
-"checks",
-JSON.stringify(arr)
-);
-
-renderChecks();
-
-document.getElementById("best").value = "";
-}
-  const options = [
-    "🍕 Pizza Night",
-    "🌅 Beach Sunset",
-    "☕ Coffee Date",
-    "🎬 Movie Night",
-    "🍦 Ice Cream Run",
-    "🎳 Bowling",
-    "🏖️ Beach Day",
-    "🚗 Road Trip",
-    "🍔 Try New Restaurant",
-    "🎮 Game Night"
-];
-
-let rotation = 0;
-
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
-
-function drawWheel() {
-
-    ctx.clearRect(0,0,400,400);
-
-    const arc = (2 * Math.PI) / options.length;
-
-    for(let i=0;i<options.length;i++){
-
-        const angle = i * arc;
-
-        ctx.beginPath();
-        ctx.moveTo(200,200);
-
-        ctx.arc(
-            200,
-            200,
-            200,
-            angle,
-            angle + arc
-        );
-
-        ctx.fillStyle =
-            i % 2 === 0
-            ? "#ff6b81"
-            : "#ffd166";
-
-        ctx.fill();
-
-        ctx.save();
-
-        ctx.translate(200,200);
-        ctx.rotate(angle + arc/2);
-
-        ctx.fillStyle = "white";
-        ctx.font = "14px sans-serif";
-
-        ctx.fillText(
-            options[i],
-            90,
-            5
-        );
-
-        ctx.restore();
-    }
-}
-
-drawWheel();
-
-function spin(){
-
-    const arcDeg = 360 / options.length;
-
-    rotation += 2500 + Math.random() * 800;
-
-    canvas.style.transition =
-        "transform 3s ease-out";
-
-    canvas.style.transform =
-        `rotate(${rotation}deg)`;
-
-    setTimeout(()=>{
-
-        const normalized =
-            (360 - (rotation % 360)) % 360;
-
-        const index =
-            Math.floor(normalized / arcDeg);
-
-        document.getElementById("result")
-        .innerHTML =
-        `❤️ Tonight's Date:<br><strong>${options[index]}</strong>`;
-
-        confetti({
-            particleCount: 200,
-            spread: 120,
-            origin:{y:0.6}
-        });
-
-    },3000);
-}
 </script>
 </body>
 </html>
