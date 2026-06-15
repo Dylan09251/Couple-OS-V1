@@ -4,457 +4,260 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Couple OS V2</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <style>
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: sans-serif; background: linear-gradient(135deg, #ff4d6d, #ffb3c1); color: white; }
-  main { padding: 15px; padding-bottom: 90px; }
-  .card { background: rgba(255,255,255,.15); padding: 15px; border-radius: 16px; margin-bottom: 12px; }
-  .tab { display: none; }
-  .tab.active { display: block; }
-  .tabbar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; display: flex; justify-content: space-around; align-items: center; background: rgba(255,255,255,.2); backdrop-filter: blur(8px); }
-  .tabbar button { width: auto; background: none; color: white; border: none; font-size: 22px; cursor: pointer; padding: 8px 12px; border-radius: 12px; transition: background .2s; }
-  .tabbar button.active-tab { background: rgba(255,255,255,.25); }
-  input, textarea, select { border: none; border-radius: 12px; padding: 10px; margin-top: 8px; width: 100%; background: rgba(255,255,255,.9); color: #333; font-size: 15px; }
-  textarea { min-height: 80px; resize: vertical; }
-  .btn { border: none; border-radius: 12px; padding: 12px; margin-top: 8px; width: 100%; background: rgba(255,255,255,.3); color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: background .2s; }
-  .btn:hover { background: rgba(255,255,255,.45); }
-  #map { height: 350px; border-radius: 12px; }
-  .note-card, .check-card { background: rgba(255,255,255,.2); padding: 12px; border-radius: 12px; margin-top: 10px; line-height: 1.5; }
-  canvas#wheel { display: block; margin: 0 auto; max-width: 100%; border-radius: 50%; }
-  #result { text-align: center; font-size: 18px; font-weight: bold; min-height: 28px; margin-top: 8px; }
-  .spinner-arrow { font-size: 36px; text-align: center; margin-bottom: -10px; display: block; }
-  h2, h3 { margin: 0 0 8px; }
+body{margin:0;font-family:sans-serif;background:linear-gradient(135deg,#ff4d6d,#ffb3c1);color:white}
+main{padding:15px;padding-bottom:90px}
+.card{background:rgba(255,255,255,.15);padding:15px;border-radius:16px;margin-bottom:12px}
+.tab{display:none}.active{display:block}
+.tabbar{position:fixed;bottom:0;left:0;right:0;height:70px;display:flex;justify-content:space-around;align-items:center;background:rgba(255,255,255,.2)}
+button,input,textarea,select{border:none;border-radius:12px;padding:10px;margin-top:8px;width:100%;box-sizing:border-box}
+.tabbar button{width:auto;background:none;color:white}
+#map{height:350px;border-radius:12px}
 </style>
 </head>
-
 <body>
 <main>
+<div id="home" class="tab active">
+<div class="card">
+<h2>❤️ D + T </h2>
+<p id="days"></p>
+<p id="thought">Nobody has tapped Thinking Of You yet ❤️</p>
+<button onclick="thinking()">❤️ Thinking Of You</button>
+</div>
+</div>
 
-  <!-- HOME -->
-  <div id="home" class="tab active">
-    <div class="card">
-      <h2>❤️ D + T</h2>
-      <p id="days">Calculating...</p>
-      <p id="thought">Nobody has tapped Thinking Of You yet ❤️</p>
-      <button class="btn" onclick="thinking()">❤️ Thinking Of You</button>
-    </div>
-  </div>
+<div id="notesTab" class="tab">
+<div class="card">
+<input id="note" placeholder="Love note">
+<button onclick="addNote()">Send Note</button>
+<div id="notes"></div>
+</div>
+</div>
 
-  <!-- NOTES -->
-  <div id="notesTab" class="tab">
-    <div class="card">
-      <input id="note" placeholder="Write a love note…">
-      <button class="btn" onclick="addNote()">💌 Send Note</button>
-      <div id="notes"></div>
-    </div>
-  </div>
+<div id="checkTab" class="tab">
+<div class="card">
+<select id="mood">
+  <option>😊 Happy</option>
+  <option>❤️ Connected</option>
+  <option>😐 Neutral</option>
+  <option>🥲 Sad</option>
+  <option>😔 Down</option>
+  <option>😡 Frustrated</option>
+  <option>🥺 Need Support</option>
+  <option>😍 In Love</option>
+  <option>🤩 Excited</option>
+  <option>🍑 Horny</option>
+  <option>🖕🏻 Livid</option>
+</select>
+<textarea id="best" placeholder="Best moment"></textarea>
+<button onclick="saveCheck()">
+Check In
+</button>
 
-  <!-- CHECK-INS -->
-  <div id="checkTab" class="tab">
-    <div class="card">
-      <select id="mood">
-        <option>😊 Happy</option>
-        <option>❤️ Connected</option>
-        <option>😐 Neutral</option>
-        <option>🥲 Sad</option>
-        <option>😔 Down</option>
-        <option>😡 Frustrated</option>
-        <option>🥺 Need Support</option>
-        <option>😍 In Love</option>
-        <option>🤩 Excited</option>
-        <option>🍑 Horny</option>
-        <option>🖕🏻 Livid</option>
-      </select>
-      <textarea id="best" placeholder="Best moment of the day…"></textarea>
-      <button class="btn" onclick="saveCheck()">✅ Check In</button>
-      <div id="checks"></div>
-    </div>
-  </div>
+<div id="checks"></div>
+</div>
+</div>
 
-  <!-- DATE WHEEL -->
-  <div id="wheelTab" class="tab">
-    <div class="card">
-      <h3>🎡 Date Wheel</h3>
-      <span class="spinner-arrow">▼</span>
-      <canvas id="wheel" width="340" height="340"></canvas>
-      <button class="btn" onclick="spin()">🎡 Spin Date Wheel</button>
-      <p id="result"></p>
-    </div>
-  </div>
+<div id="wheelTab" class="tab">
 
-  <!-- MAP -->
-  <div id="mapTab" class="tab">
-    <div class="card">
-      <input id="placeName" placeholder="Place name">
-      <input id="placeMemory" placeholder="Memory here…">
-      <button class="btn" onclick="addPlace()">📍 Add Place</button>
-    </div>
-    <div class="card">
-      <div id="map"></div>
-    </div>
-  </div>
+<div class="card">
 
+<h3>🎡 Date Wheel</h3>
+
+<div style="
+font-size:40px;
+text-align:center;
+margin-bottom:-20px;
+">
+▼
+</div>
+
+<canvas
+id="wheel"
+width="400"
+height="400">
+</canvas>
+
+<button onclick="spin()">
+🎡 Spin Date Wheel
+</button>
+
+<p id="result"></p>
+
+</div>
+
+</div>
+
+<div id="mapTab" class="tab">
+<div class="card">
+<input id="placeName" placeholder="Place">
+<input id="placeMemory" placeholder="Memory">
+<button onclick="addPlace()">Add Place</button>
+</div>
+<div class="card"><div id="map"></div></div>
+</div>
 </main>
 
 <div class="tabbar">
-  <button onclick="openTab('home')" id="tab-home">🏠</button>
-  <button onclick="openTab('notesTab')" id="tab-notesTab">💌</button>
-  <button onclick="openTab('checkTab')" id="tab-checkTab">🧾</button>
-  <button onclick="openTab('wheelTab')" id="tab-wheelTab">🎡</button>
-  <button onclick="openTab('mapTab')" id="tab-mapTab">🗺️</button>
+<button onclick="openTab('home')">🏠</button>
+<button onclick="openTab('notesTab')">💌</button>
+<button onclick="openTab('checkTab')">🧾</button>
+<button onclick="openTab('wheelTab')">🎡</button>
+<button onclick="openTab('mapTab')">🗺️</button>
 </div>
 
 <script>
-/* =========================
-   SUPABASE — replace these
-========================= */
-const SUPABASE_URL  = "YOUR_SUPABASE_URL";
-const SUPABASE_ANON = "YOUR_SUPABASE_ANON_KEY";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const start=new Date('2026-05-23');
+days.innerText='❤️ Together for '+Math.floor((Date.now()-start)/(1000*60*60*24))+' days';
 
-/* =========================
-   ELEMENTS
-========================= */
-const daysEl      = document.getElementById("days");
-const thoughtEl   = document.getElementById("thought");
-const notesEl     = document.getElementById("notes");
-const checksEl    = document.getElementById("checks");
-const noteEl      = document.getElementById("note");
-const placeNameEl = document.getElementById("placeName");
-const placeMemEl  = document.getElementById("placeMemory");
+function openTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='mapTab')setTimeout(()=>map.invalidateSize(),100);}
 
-/* =========================
-   TAB NAVIGATION  ← FIX #1
-========================= */
-let currentTab = "home";
+function thinking(){localStorage.setItem('thought',new Date().toLocaleString());thought.innerText='❤️ Thinking of you tapped at '+localStorage.getItem('thought');}
+if(localStorage.getItem('thought')) thought.innerText='❤️ Thinking of you tapped at '+localStorage.getItem('thought');
 
-function openTab(id) {
-  document.getElementById(currentTab).classList.remove("active");
-  document.getElementById("tab-" + currentTab).classList.remove("active-tab");
-  currentTab = id;
-  document.getElementById(id).classList.add("active");
-  document.getElementById("tab-" + id).classList.add("active-tab");
+function addNote(){let n=note.value.trim(); if(!n)return; let arr=JSON.parse(localStorage.getItem('notes')||'[]'); arr.unshift(n); localStorage.setItem('notes',JSON.stringify(arr)); renderNotes(); note.value='';}
+function renderNotes(){let arr=JSON.parse(localStorage.getItem('notes')||'[]'); notes.innerHTML=arr.map(x=>'<div class="card">❤️ '+x+'</div>').join('');}
+renderNotes();
 
-  // FIX #8 — refresh map when its tab becomes visible
-  if (id === "mapTab") {
-    setTimeout(() => map.invalidateSize(), 100);
-  }
+function renderChecks(){let arr=JSON.parse(localStorage.getItem('checks')||'[]'); checks.innerHTML=arr.map(x=>'<div class="card">'+x.m+'<br>'+x.b+'</div>').join('');}
+renderChecks();
+
+const map=L.map('map').setView([30.3322,-81.6557],11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let places=JSON.parse(localStorage.getItem('places')||'[]');
+function drawPlaces(){places.forEach(p=>L.marker([p.lat,p.lon]).addTo(map).bindPopup('<b>'+p.name+'</b><br>'+p.memory));}
+drawPlaces();
+function addPlace(){
+let name=placeName.value.trim(); if(!name)return;
+let p={name,memory:placeMemory.value,lat:30.3322+(Math.random()-.5)*.2,lon:-81.6557+(Math.random()-.5)*.2};
+places.push(p); localStorage.setItem('places',JSON.stringify(places)); location.reload();
+}
+function saveCheck(){
+
+if(document.getElementById("mood").value === "😢 Sad"){
+alert("❤️ Remember you're loved.");
 }
 
-// Mark home active on load
-document.getElementById("tab-home").classList.add("active-tab");
+let arr =
+JSON.parse(
+localStorage.getItem("checks") || "[]"
+);
 
-/* =========================
-   DATA LAYER  ← FIX #5
-========================= */
-async function getData(key) {
-  try {
-    const { data, error } = await supabase
-      .from("couple_data")
-      .select("value")
-      .eq("key", key)
-      .maybeSingle();
-    if (error) return null;
-    const raw = data?.value ?? null;
-    // Parse string-encoded JSON Supabase sometimes returns
-    if (typeof raw === "string") {
-      try { return JSON.parse(raw); } catch { return raw; }
-    }
-    return raw;
-  } catch (e) {
-    return null;
-  }
+arr.unshift({
+m: document.getElementById("mood").value,
+b: document.getElementById("best").value
+});
+
+localStorage.setItem(
+"checks",
+JSON.stringify(arr)
+);
+
+renderChecks();
+
+document.getElementById("best").value = "";
 }
-
-async function saveData(key, value) {
-  try {
-    await supabase.from("couple_data").upsert({ key, value });
-  } catch (e) {
-    console.error("save error", e);
-  }
-}
-
-/* =========================
-   REAL-TIME SYNC  ← FIX #6
-========================= */
-supabase
-  .channel("couple_data_changes")
-  .on("postgres_changes", { event: "*", schema: "public", table: "couple_data" }, (payload) => {
-    const key = payload.new?.key;
-    if (key === "thought")  loadThought();
-    if (key === "notes")    renderNotes();
-    if (key === "checks")   renderChecks();
-    if (key === "places")   loadPlaces();
-  })
-  .subscribe();
-
-/* =========================
-   STREAK
-========================= */
-let startDate = new Date("2026-05-23");
-
-async function loadStreak() {
-  const stored = await getData("start_date");
-  if (stored) startDate = new Date(stored);
-  else await saveData("start_date", "2026-05-23");
-  updateStreak();
-}
-
-function updateStreak() {
-  const d = Math.floor((Date.now() - startDate) / (1000 * 60 * 60 * 24));
-  daysEl.innerText = `❤️ Together for ${d} day${d !== 1 ? "s" : ""}`;
-}
-
-setInterval(updateStreak, 3600000);
-
-/* =========================
-   THINKING OF YOU
-========================= */
-async function thinking() {
-  const time = new Date().toLocaleString();
-  await saveData("thought", time);
-  thoughtEl.innerText = "❤️ Thinking of you tapped at " + time;
-
-  // FIX #7 — fire confetti
-  confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ["#ff4d6d","#ffb3c1","#ffffff"] });
-}
-
-async function loadThought() {
-  const t = await getData("thought");
-  if (t) thoughtEl.innerText = "❤️ Thinking of you tapped at " + t;
-}
-
-/* =========================
-   NOTES
-========================= */
-async function addNote() {
-  const n = noteEl.value.trim();
-  if (!n) return;
-  let arr = await getData("notes");
-  if (!Array.isArray(arr)) arr = [];
-  arr.unshift({ text: n, ts: new Date().toLocaleString() });
-  await saveData("notes", arr);
-  noteEl.value = "";
-  renderNotes();
-}
-
-async function renderNotes() {
-  let arr = await getData("notes");
-  if (!Array.isArray(arr)) arr = [];
-  notesEl.innerHTML = arr.map(x =>
-    `<div class="note-card">💌 ${x.text || x}<br><small style="opacity:.7">${x.ts || ""}</small></div>`
-  ).join("");
-}
-
-/* =========================
-   CHECK-INS
-========================= */
-async function saveCheck() {
-  let arr = await getData("checks");
-  if (!Array.isArray(arr)) arr = [];
-  arr.unshift({
-    m: document.getElementById("mood").value,
-    b: document.getElementById("best").value,
-    ts: new Date().toLocaleString()
-  });
-  await saveData("checks", arr);
-  document.getElementById("best").value = "";
-  renderChecks();
-  confetti({ particleCount: 60, spread: 55, origin: { y: 0.6 } });
-}
-
-async function renderChecks() {
-  let arr = await getData("checks");
-  if (!Array.isArray(arr)) arr = [];
-  checksEl.innerHTML = arr.map(x =>
-    `<div class="check-card">${x.m || ""}<br>${x.b || ""}<br><small style="opacity:.7">${x.ts || ""}</small></div>`
-  ).join("");
-}
-
-/* =========================
-   DATE WHEEL  ← FIX #1 (spin) & drawing
-========================= */
-const dates = [
-  "🍕 Pizza Night",
-  "🎬 Movie Night",
-  "🌿 Nature Walk",
-  "🎳 Bowling",
-  "🍦 Ice Cream Run",
-  "🎲 Board Games",
-  "🌅 Sunrise Watch",
-  "🚗 Drive & Explore"
+  const options = [
+    "🍕 Pizza Night",
+    "🌅 Beach Sunset",
+    "☕ Coffee Date",
+    "🎬 Movie Night",
+    "🍦 Ice Cream Run",
+    "🎳 Bowling",
+    "🏖️ Beach Day",
+    "🚗 Road Trip",
+    "🍔 Try New Restaurant",
+    "🎮 Game Night"
 ];
 
-const COLORS = ["#ff4d6d","#ff758f","#ffb3c1","#ff8fa3","#c9184a","#ff6b81","#ff9eb5","#ffd6e0"];
-const wCanvas = document.getElementById("wheel");
-const wCtx    = wCanvas.getContext("2d");
-const slices  = dates.length;
-const sliceAngle = (2 * Math.PI) / slices;
+let rotation = 0;
 
-let currentAngle = 0;
-let spinning = false;
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
 
-function drawWheel(angle) {
-  const cx = wCanvas.width / 2;
-  const cy = wCanvas.height / 2;
-  const r  = cx - 4;
+function drawWheel() {
 
-  wCtx.clearRect(0, 0, wCanvas.width, wCanvas.height);
+    ctx.clearRect(0,0,400,400);
 
-  dates.forEach((label, i) => {
-    const start = angle + i * sliceAngle;
-    const end   = start + sliceAngle;
+    const arc = (2 * Math.PI) / options.length;
 
-    // Slice
-    wCtx.beginPath();
-    wCtx.moveTo(cx, cy);
-    wCtx.arc(cx, cy, r, start, end);
-    wCtx.closePath();
-    wCtx.fillStyle = COLORS[i % COLORS.length];
-    wCtx.fill();
-    wCtx.strokeStyle = "rgba(255,255,255,.4)";
-    wCtx.lineWidth = 2;
-    wCtx.stroke();
+    for(let i=0;i<options.length;i++){
 
-    // Label
-    wCtx.save();
-    wCtx.translate(cx, cy);
-    wCtx.rotate(start + sliceAngle / 2);
-    wCtx.textAlign = "right";
-    wCtx.fillStyle = "white";
-    wCtx.font = "bold 13px sans-serif";
-    wCtx.shadowColor = "rgba(0,0,0,.4)";
-    wCtx.shadowBlur = 3;
-    wCtx.fillText(label, r - 10, 5);
-    wCtx.restore();
-  });
+        const angle = i * arc;
 
-  // Centre dot
-  wCtx.beginPath();
-  wCtx.arc(cx, cy, 10, 0, 2 * Math.PI);
-  wCtx.fillStyle = "white";
-  wCtx.fill();
-}
+        ctx.beginPath();
+        ctx.moveTo(200,200);
 
-drawWheel(0);
+        ctx.arc(
+            200,
+            200,
+            200,
+            angle,
+            angle + arc
+        );
 
-function spin() {
-  if (spinning) return;
-  spinning = true;
-  document.getElementById("result").innerText = "";
+        ctx.fillStyle =
+            i % 2 === 0
+            ? "#ff6b81"
+            : "#ffd166";
 
-  const extraSpins  = (Math.random() * 5 + 5) * 2 * Math.PI; // 5-10 full rotations
-  const targetAngle = currentAngle + extraSpins;
-  const duration    = 3500;
-  const start       = performance.now();
-  const from        = currentAngle;
+        ctx.fill();
 
-  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+        ctx.save();
 
-  function frame(now) {
-    const elapsed  = now - start;
-    const progress = Math.min(elapsed / duration, 1);
-    currentAngle   = from + extraSpins * easeOut(progress);
-    drawWheel(currentAngle);
+        ctx.translate(200,200);
+        ctx.rotate(angle + arc/2);
 
-    if (progress < 1) {
-      requestAnimationFrame(frame);
-    } else {
-      spinning = false;
-      // Determine winner: arrow points up (−π/2), find which slice is at top
-      const normalised = ((- currentAngle - Math.PI / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-      const index = Math.floor(normalised / sliceAngle) % slices;
-      document.getElementById("result").innerText = "🎉 " + dates[index];
-      confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 }, colors: ["#ff4d6d","#ffb3c1","#fff"] });
+        ctx.fillStyle = "white";
+        ctx.font = "14px sans-serif";
+
+        ctx.fillText(
+            options[i],
+            90,
+            5
+        );
+
+        ctx.restore();
     }
-  }
-
-  requestAnimationFrame(frame);
 }
 
-/* =========================
-   MAP  ← FIX #4 & #8
-========================= */
-const map = L.map("map").setView([30.3322, -81.6557], 11);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "© OpenStreetMap contributors"
-}).addTo(map);
+drawWheel();
 
-let places  = [];
-let markers = [];
+function spin(){
 
-async function loadPlaces() {
-  const data = await getData("places");
-  places = Array.isArray(data) ? data : [];
-  drawPlaces();
+    const arcDeg = 360 / options.length;
+
+    rotation += 2500 + Math.random() * 800;
+
+    canvas.style.transition =
+        "transform 3s ease-out";
+
+    canvas.style.transform =
+        `rotate(${rotation}deg)`;
+
+    setTimeout(()=>{
+
+        const normalized =
+            (360 - (rotation % 360)) % 360;
+
+        const index =
+            Math.floor(normalized / arcDeg);
+
+        document.getElementById("result")
+        .innerHTML =
+        `❤️ Tonight's Date:<br><strong>${options[index]}</strong>`;
+
+        confetti({
+            particleCount: 200,
+            spread: 120,
+            origin:{y:0.6}
+        });
+
+    },3000);
 }
-
-function drawPlaces() {
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
-  places.forEach(p => {
-    const m = L.marker([p.lat, p.lon]).addTo(map)
-      .bindPopup(`<b>${p.name}</b><br>${p.memory || ""}`);
-    markers.push(m);
-  });
-}
-
-// FIX #4 — use browser geolocation for the user's real position
-async function addPlace() {
-  const name = placeNameEl.value.trim();
-  if (!name) return;
-
-  const data = await getData("places");
-  places = Array.isArray(data) ? data : [];
-
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      places.push({
-        name,
-        memory: placeMemEl.value.trim(),
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude
-      });
-      await saveData("places", places);
-      placeNameEl.value = "";
-      placeMemEl.value  = "";
-      loadPlaces();
-      map.setView([pos.coords.latitude, pos.coords.longitude], 14);
-    },
-    async () => {
-      // Fallback: use map centre if geolocation denied
-      const centre = map.getCenter();
-      places.push({
-        name,
-        memory: placeMemEl.value.trim(),
-        lat: centre.lat,
-        lon: centre.lng
-      });
-      await saveData("places", places);
-      placeNameEl.value = "";
-      placeMemEl.value  = "";
-      loadPlaces();
-    }
-  );
-}
-
-/* =========================
-   INIT
-========================= */
-window.addEventListener("load", async () => {
-  loadStreak();
-  renderNotes();
-  renderChecks();
-  loadThought();
-  loadPlaces();
-});
 </script>
 </body>
 </html>
