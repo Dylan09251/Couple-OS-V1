@@ -103,7 +103,15 @@ button,input,textarea,select{border:none;border-radius:12px;padding:10px;margin-
 
 <script>
 /* =========================
-   ELEMENTS (FIXED CRASH)
+   SUPABASE
+========================= */
+const supabase = window.supabase.createClient(
+  "YOUR_SUPABASE_URL",
+  "YOUR_SUPABASE_ANON_KEY"
+);
+
+/* =========================
+   ELEMENTS (SAFE)
 ========================= */
 const days = document.getElementById("days");
 const thought = document.getElementById("thought");
@@ -114,69 +122,85 @@ const placeNameEl = document.getElementById("placeName");
 const placeMemoryEl = document.getElementById("placeMemory");
 
 /* =========================
-   SUPABASE
+   SAFE DATA LAYER
 ========================= */
-const supabase = window.supabase.createClient(
-  "YOUR_SUPABASE_URL",
-  "YOUR_SUPABASE_ANON_KEY"
-);
+async function getData(key) {
+  try {
+    const { data, error } = await supabase
+      .from("couple_data")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
 
-/* =========================
-   BASIC UI
-========================= */
-const start = new Date('2026-05-23');
+    if (error) return null;
+    return data?.value ?? null;
 
-days.innerText =
-  '❤️ Together for ' +
-  Math.floor((Date.now() - start) / (1000 * 60 * 60 * 24)) +
-  ' days';
+  } catch (e) {
+    return null;
+  }
+}
 
-function openTab(id){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+async function saveData(key, value) {
+  try {
+    await supabase
+      .from("couple_data")
+      .upsert({ key, value });
+  } catch (e) {
+    console.log("save error", e);
+  }
 }
 
 /* =========================
-   SAFE SUPABASE
+   STREAK SYSTEM (SAFE)
 ========================= */
-async function getData(key){
-  const { data } = await supabase
-    .from("couple_data")
-    .select("value")
-    .eq("key", key)
-    .maybeSingle();
+let startDate = new Date("2026-05-23");
 
-  return data?.value ?? null;
+async function loadStreak() {
+  const stored = await getData("start_date");
+  if (stored) startDate = new Date(stored);
+  else await saveData("start_date", "2026-05-23");
+
+  updateStreak();
 }
 
-async function saveData(key,value){
-  await supabase
-    .from("couple_data")
-    .upsert({ key, value });
+function updateStreak() {
+  const daysTogether = Math.floor(
+    (Date.now() - startDate) / (1000 * 60 * 60 * 24)
+  );
+
+  days.innerText = `❤️ Together for ${daysTogether} days`;
 }
+
+setInterval(updateStreak, 3600000);
 
 /* =========================
    THINKING OF YOU
 ========================= */
-async function thinking(){
+async function thinking() {
   const time = new Date().toLocaleString();
+
   await saveData("thought", time);
+
   thought.innerText = "❤️ Thinking of you tapped at " + time;
 }
 
-async function loadThought(){
+async function loadThought() {
   const t = await getData("thought");
-  if(t) thought.innerText = "❤️ Thinking of you tapped at " + t;
+
+  if (t)
+    thought.innerText = "❤️ Thinking of you tapped at " + t;
 }
 
 /* =========================
    NOTES
 ========================= */
-async function addNote(){
-  let n = noteEl.value.trim();
-  if(!n) return;
+async function addNote() {
+  const n = noteEl.value.trim();
+  if (!n) return;
 
-  let arr = await getData("notes") || [];
+  let arr = await getData("notes");
+  if (!Array.isArray(arr)) arr = [];
+
   arr.unshift(n);
 
   await saveData("notes", arr);
@@ -185,16 +209,21 @@ async function addNote(){
   renderNotes();
 }
 
-async function renderNotes(){
-  let arr = await getData("notes") || [];
-  notesEl.innerHTML = arr.map(x=>`<div class="card">❤️ ${x}</div>`).join('');
+async function renderNotes() {
+  let arr = await getData("notes");
+  if (!Array.isArray(arr)) arr = [];
+
+  notesEl.innerHTML = arr
+    .map(x => `<div class="card">❤️ ${x}</div>`)
+    .join("");
 }
 
 /* =========================
    CHECK-INS
 ========================= */
-async function saveCheck(){
-  let arr = await getData("checks") || [];
+async function saveCheck() {
+  let arr = await getData("checks");
+  if (!Array.isArray(arr)) arr = [];
 
   arr.unshift({
     m: document.getElementById("mood").value,
@@ -207,139 +236,77 @@ async function saveCheck(){
   renderChecks();
 }
 
-async function renderChecks(){
-  let arr = await getData("checks") || [];
-  checksEl.innerHTML = arr.map(x=>`<div class="card">${x.m}<br>${x.b}</div>`).join('');
+async function renderChecks() {
+  let arr = await getData("checks");
+  if (!Array.isArray(arr)) arr = [];
+
+  checksEl.innerHTML = arr
+    .map(x => `<div class="card">${x.m || ""}<br>${x.b || ""}</div>`)
+    .join("");
 }
 
 /* =========================
-   MAP
+   PLACES (SAFE)
 ========================= */
-const map = L.map('map').setView([30.3322,-81.6557],11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+const map = L.map("map").setView([30.3322, -81.6557], 11);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
 let places = [];
 let markers = [];
 
-async function loadPlaces(){
-  places = await getData("places") || [];
+async function loadPlaces() {
+  let data = await getData("places");
+  places = Array.isArray(data) ? data : [];
+
   drawPlaces();
 }
 
-function drawPlaces(){
-  markers.forEach(m=>map.removeLayer(m));
+function drawPlaces() {
+  markers.forEach(m => map.removeLayer(m));
   markers = [];
 
-  places.forEach(p=>{
-    const marker = L.marker([p.lat,p.lon])
+  places.forEach(p => {
+    const marker = L.marker([p.lat, p.lon])
       .addTo(map)
       .bindPopup(`<b>${p.name}</b><br>${p.memory}`);
+
     markers.push(marker);
   });
 }
 
-async function addPlace(){
-  let name = placeNameEl.value.trim();
-  if(!name) return;
+async function addPlace() {
+  const name = placeNameEl.value.trim();
+  if (!name) return;
 
-  let placesData = await getData("places") || [];
+  let data = await getData("places");
+  places = Array.isArray(data) ? data : [];
 
-  placesData.push({
+  places.push({
     name,
     memory: placeMemoryEl.value,
-    lat: 30.3322 + (Math.random()-0.5)*0.2,
-    lon: -81.6557 + (Math.random()-0.5)*0.2
+    lat: 30.3322 + (Math.random() - 0.5) * 0.2,
+    lon: -81.6557 + (Math.random() - 0.5) * 0.2
   });
 
-  await saveData("places", placesData);
+  await saveData("places", places);
 
-  placeNameEl.value="";
-  placeMemoryEl.value="";
+  placeNameEl.value = "";
+  placeMemoryEl.value = "";
+
   loadPlaces();
 }
 
 /* =========================
-   DATE WHEEL
+   INIT (SAFE)
 ========================= */
-const options=[
-"🍕 Pizza Night","🌅 Beach Sunset","☕ Coffee Date","🎬 Movie Night",
-"🍦 Ice Cream Run","🎳 Bowling","🏖️ Beach Day","🚗 Road Trip",
-"🍔 Try New Restaurant","🎮 Game Night"
-];
-
-let rotation=0;
-const canvas=document.getElementById("wheel");
-const ctx=canvas.getContext("2d");
-
-function drawWheel(){
-  ctx.clearRect(0,0,400,400);
-  const arc=(2*Math.PI)/options.length;
-
-  for(let i=0;i<options.length;i++){
-    const angle=i*arc;
-
-    ctx.beginPath();
-    ctx.moveTo(200,200);
-    ctx.arc(200,200,200,angle,angle+arc);
-
-    ctx.fillStyle=i%2?"#ffd166":"#ff6b81";
-    ctx.fill();
-
-    ctx.save();
-    ctx.translate(200,200);
-    ctx.rotate(angle+arc/2);
-
-    ctx.fillStyle="white";
-    ctx.font="14px sans-serif";
-    ctx.fillText(options[i],90,5);
-    ctx.restore();
-  }
-}
-drawWheel();
-
-function spin(){
-  const arcDeg=360/options.length;
-  rotation+=2500+Math.random()*800;
-
-  canvas.style.transition="transform 3s ease-out";
-  canvas.style.transform=`rotate(${rotation}deg)`;
-
-  setTimeout(()=>{
-    const normalized=(360-(rotation%360))%360;
-    const index=Math.floor(normalized/arcDeg);
-
-    document.getElementById("result").innerHTML=
-      `❤️ Tonight's Date:<br><strong>${options[index]}</strong>`;
-
-    confetti({particleCount:200,spread:120,origin:{y:0.6}});
-  },3000);
-}
-
-/* =========================
-   INIT
-========================= */
-window.addEventListener("load", async ()=>{
+window.addEventListener("load", async () => {
+  loadStreak();
   renderNotes();
   renderChecks();
   loadThought();
   loadPlaces();
 });
-
-/* =========================
-   REALTIME SYNC
-========================= */
-supabase
-  .channel("couple-sync")
-  .on("postgres_changes",
-    {event:"*",schema:"public",table:"couple_data"},
-    ()=>{
-      renderNotes();
-      renderChecks();
-      loadThought();
-      loadPlaces();
-    }
-  )
-  .subscribe();
 </script>
 
 </body>
