@@ -109,68 +109,198 @@ height="400">
 <button onclick="openTab('mapTab')">🗺️</button>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
 <script>
-const start=new Date('2026-05-23');
-days.innerText='❤️ Together for '+Math.floor((Date.now()-start)/(1000*60*60*24))+' days';
-
-function openTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='mapTab')setTimeout(()=>map.invalidateSize(),100);}
-
-function thinking(){localStorage.setItem('thought',new Date().toLocaleString());thought.innerText='❤️ Thinking of you tapped at '+localStorage.getItem('thought');}
-if(localStorage.getItem('thought')) thought.innerText='❤️ Thinking of you tapped at '+localStorage.getItem('thought');
-
-function addNote(){let n=note.value.trim(); if(!n)return; let arr=JSON.parse(localStorage.getItem('notes')||'[]'); arr.unshift(n); localStorage.setItem('notes',JSON.stringify(arr)); renderNotes(); note.value='';}
-function renderNotes(){let arr=JSON.parse(localStorage.getItem('notes')||'[]'); notes.innerHTML=arr.map(x=>'<div class="card">❤️ '+x+'</div>').join('');}
-renderNotes();
-
-function renderChecks(){let arr=JSON.parse(localStorage.getItem('checks')||'[]'); checks.innerHTML=arr.map(x=>'<div class="card">'+x.m+'<br>'+x.b+'</div>').join('');}
-renderChecks();
-
-const map=L.map('map').setView([30.3322,-81.6557],11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-let places=JSON.parse(localStorage.getItem('places')||'[]');
-function drawPlaces(){places.forEach(p=>L.marker([p.lat,p.lon]).addTo(map).bindPopup('<b>'+p.name+'</b><br>'+p.memory));}
-drawPlaces();
-function addPlace(){
-let name=placeName.value.trim(); if(!name)return;
-let p={name,memory:placeMemory.value,lat:30.3322+(Math.random()-.5)*.2,lon:-81.6557+(Math.random()-.5)*.2};
-places.push(p); localStorage.setItem('places',JSON.stringify(places)); location.reload();
-}
-function saveCheck(){
-
-if(document.getElementById("mood").value === "😢 Sad"){
-alert("❤️ Remember you're loved.");
-}
-
-let arr =
-JSON.parse(
-localStorage.getItem("checks") || "[]"
+/* =========================
+   SUPABASE SETUP
+========================= */
+const supabase = window.supabase.createClient(
+  "https://myaahpincegqawwtfcfd.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15YWFocGluY2VncWF3d3RmY2ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NzYwNTUsImV4cCI6MjA5NzA1MjA1NX0.uN6GJOf7dW9ICcJzYO4hvtp3vPcrce0M1GXYgrpcPQw"
 );
 
-arr.unshift({
-m: document.getElementById("mood").value,
-b: document.getElementById("best").value
-});
+/* single shared couple space */
+const coupleId = "main";
 
-localStorage.setItem(
-"checks",
-JSON.stringify(arr)
-);
+/* =========================
+   BASIC UI
+========================= */
 
-renderChecks();
+const start = new Date('2026-05-23');
 
-document.getElementById("best").value = "";
+days.innerText =
+  '❤️ Together for ' +
+  Math.floor((Date.now() - start) / (1000 * 60 * 60 * 24)) +
+  ' days';
+
+function openTab(id) {
+  document.querySelectorAll('.tab')
+    .forEach(t => t.classList.remove('active'));
+
+  document.getElementById(id).classList.add('active');
+
+  if (id === 'mapTab')
+    setTimeout(() => map.invalidateSize(), 100);
 }
-  const options = [
-    "🍕 Pizza Night",
-    "🌅 Beach Sunset",
-    "☕ Coffee Date",
-    "🎬 Movie Night",
-    "🍦 Ice Cream Run",
-    "🎳 Bowling",
-    "🏖️ Beach Day",
-    "🚗 Road Trip",
-    "🍔 Try New Restaurant",
-    "🎮 Game Night"
+
+/* =========================
+   SUPABASE HELPERS
+========================= */
+
+async function getData(key) {
+  const { data } = await supabase
+    .from("couple_data")
+    .select("value")
+    .eq("key", key)
+    .single();
+
+  return data?.value;
+}
+
+async function saveData(key, value) {
+  await supabase
+    .from("couple_data")
+    .upsert({ key, value });
+}
+
+/* =========================
+   THINKING OF YOU
+========================= */
+
+async function thinking() {
+  const time = new Date().toLocaleString();
+
+  await saveData("thought", time);
+
+  thought.innerText =
+    '❤️ Thinking of you tapped at ' + time;
+}
+
+async function loadThought() {
+  const t = await getData("thought");
+
+  if (t)
+    thought.innerText =
+      '❤️ Thinking of you tapped at ' + t;
+}
+
+/* =========================
+   NOTES
+========================= */
+
+async function addNote() {
+  let n = note.value.trim();
+  if (!n) return;
+
+  let arr = await getData("notes") || [];
+
+  arr.unshift(n);
+
+  await saveData("notes", arr);
+
+  renderNotes();
+  note.value = '';
+}
+
+async function renderNotes() {
+  let arr = await getData("notes") || [];
+
+  notes.innerHTML = arr
+    .map(x => `<div class="card">❤️ ${x}</div>`)
+    .join('');
+}
+
+/* =========================
+   CHECK-INS
+========================= */
+
+async function renderChecks() {
+  let arr = await getData("checks") || [];
+
+  checks.innerHTML = arr
+    .map(x => `<div class="card">${x.m}<br>${x.b}</div>`)
+    .join('');
+}
+
+async function saveCheck() {
+
+  if (document.getElementById("mood").value === "😢 Sad") {
+    alert("❤️ Remember you're loved.");
+  }
+
+  let arr = await getData("checks") || [];
+
+  arr.unshift({
+    m: document.getElementById("mood").value,
+    b: document.getElementById("best").value
+  });
+
+  await saveData("checks", arr);
+
+  renderChecks();
+
+  document.getElementById("best").value = "";
+}
+
+/* =========================
+   PLACES / MAP
+========================= */
+
+const map = L.map('map').setView([30.3322, -81.6557], 11);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+  .addTo(map);
+
+let places = [];
+
+async function loadPlaces() {
+  places = await getData("places") || [];
+  drawPlaces();
+}
+
+function drawPlaces() {
+  places.forEach(p =>
+    L.marker([p.lat, p.lon])
+      .addTo(map)
+      .bindPopup(`<b>${p.name}</b><br>${p.memory}`)
+  );
+}
+
+async function addPlace() {
+
+  let name = placeName.value.trim();
+  if (!name) return;
+
+  let p = {
+    name,
+    memory: placeMemory.value,
+    lat: 30.3322 + (Math.random() - .5) * .2,
+    lon: -81.6557 + (Math.random() - .5) * .2
+  };
+
+  places.push(p);
+
+  await saveData("places", places);
+
+  location.reload();
+}
+
+/* =========================
+   DATE WHEEL (UNCHANGED)
+========================= */
+
+const options = [
+  "🍕 Pizza Night",
+  "🌅 Beach Sunset",
+  "☕ Coffee Date",
+  "🎬 Movie Night",
+  "🍦 Ice Cream Run",
+  "🎳 Bowling",
+  "🏖️ Beach Day",
+  "🚗 Road Trip",
+  "🍔 Try New Restaurant",
+  "🎮 Game Night"
 ];
 
 let rotation = 0;
@@ -179,85 +309,99 @@ const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 
 function drawWheel() {
+  ctx.clearRect(0, 0, 400, 400);
 
-    ctx.clearRect(0,0,400,400);
+  const arc = (2 * Math.PI) / options.length;
 
-    const arc = (2 * Math.PI) / options.length;
+  for (let i = 0; i < options.length; i++) {
 
-    for(let i=0;i<options.length;i++){
+    const angle = i * arc;
 
-        const angle = i * arc;
+    ctx.beginPath();
+    ctx.moveTo(200, 200);
 
-        ctx.beginPath();
-        ctx.moveTo(200,200);
+    ctx.arc(200, 200, 200, angle, angle + arc);
 
-        ctx.arc(
-            200,
-            200,
-            200,
-            angle,
-            angle + arc
-        );
+    ctx.fillStyle = i % 2 === 0 ? "#ff6b81" : "#ffd166";
 
-        ctx.fillStyle =
-            i % 2 === 0
-            ? "#ff6b81"
-            : "#ffd166";
+    ctx.fill();
 
-        ctx.fill();
+    ctx.save();
 
-        ctx.save();
+    ctx.translate(200, 200);
+    ctx.rotate(angle + arc / 2);
 
-        ctx.translate(200,200);
-        ctx.rotate(angle + arc/2);
+    ctx.fillStyle = "white";
+    ctx.font = "14px sans-serif";
 
-        ctx.fillStyle = "white";
-        ctx.font = "14px sans-serif";
+    ctx.fillText(options[i], 90, 5);
 
-        ctx.fillText(
-            options[i],
-            90,
-            5
-        );
-
-        ctx.restore();
-    }
+    ctx.restore();
+  }
 }
 
 drawWheel();
 
-function spin(){
+function spin() {
 
-    const arcDeg = 360 / options.length;
+  const arcDeg = 360 / options.length;
 
-    rotation += 2500 + Math.random() * 800;
+  rotation += 2500 + Math.random() * 800;
 
-    canvas.style.transition =
-        "transform 3s ease-out";
+  canvas.style.transition = "transform 3s ease-out";
+  canvas.style.transform = `rotate(${rotation}deg)`;
 
-    canvas.style.transform =
-        `rotate(${rotation}deg)`;
+  setTimeout(() => {
 
-    setTimeout(()=>{
+    const normalized =
+      (360 - (rotation % 360)) % 360;
 
-        const normalized =
-            (360 - (rotation % 360)) % 360;
+    const index =
+      Math.floor(normalized / arcDeg);
 
-        const index =
-            Math.floor(normalized / arcDeg);
+    document.getElementById("result").innerHTML =
+      `❤️ Tonight's Date:<br><strong>${options[index]}</strong>`;
 
-        document.getElementById("result")
-        .innerHTML =
-        `❤️ Tonight's Date:<br><strong>${options[index]}</strong>`;
+    confetti({
+      particleCount: 200,
+      spread: 120,
+      origin: { y: 0.6 }
+    });
 
-        confetti({
-            particleCount: 200,
-            spread: 120,
-            origin:{y:0.6}
-        });
-
-    },3000);
+  }, 3000);
 }
+
+/* =========================
+   REALTIME SYNC
+========================= */
+
+supabase
+  .channel("couple-sync")
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "couple_data"
+    },
+    () => {
+      renderNotes();
+      renderChecks();
+      loadThought();
+      loadPlaces();
+    }
+  )
+  .subscribe();
+
+/* =========================
+   INITIAL LOAD
+========================= */
+
+renderNotes();
+renderChecks();
+loadThought();
+loadPlaces();
+
 </script>
 </body>
 </html>
